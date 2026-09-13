@@ -454,10 +454,44 @@ function handleFallback<T>(endpoint: string, options: RequestInit = {}): T {
       if (matchJob) {
         const jId = parseInt(matchJob[1], 10);
         const filtered = apps.filter((a: any) => a.job_id === jId);
+        const sourceList = filtered.length > 0 ? filtered : apps;
+        const mappedCandidates = sourceList.map((a: any, idx: number) => {
+          const isSayan = a.candidate_email?.includes('sayan') || a.candidate_name?.toLowerCase().includes('sayan') || a.candidate_id === 7 || a.candidate_id === 5;
+          const candName = a.name || a.candidate_name || (isSayan ? 'Sayan Rooj' : 'Candidate');
+          const candEmail = a.email || a.candidate_email || (isSayan ? 'sayanrooj742137@gmail.com' : 'candidate@example.com');
+          return {
+            application_id: a.id || a.application_id,
+            candidate_id: a.candidate_id || (isSayan ? 5 : 1),
+            name: candName,
+            email: candEmail,
+            phone: a.phone || a.candidate_phone || (isSayan ? '+91 98832 60373' : '+91 98765 43210'),
+            headline: a.headline || a.candidate_headline || (isSayan ? 'AI / Full Stack Engineer & Machine Learning Specialist' : 'Software Engineering Professional'),
+            education: a.education || a.candidate_education || 'Bachelor of Technology in Computer Science & Engineering',
+            experience_years: a.experience_years ?? 3.5,
+            skills: a.skills || ['Python', 'FastAPI', 'PyTorch', 'React', 'TypeScript', 'Transformers', 'SQL'],
+            overall_match_score: a.overall_match_score || 93.8,
+            criteria_breakdown: a.scores?.criteria_breakdown || { 'Technical Skills': 95.0, 'Problem Solving': 90.0 },
+            knockout_met: a.scores?.knockout_met ?? true,
+            human_review_recommended: a.human_review_recommended ?? false,
+            recruiter_override: a.scores?.recruiter_override ?? false,
+            application_status: a.application_status || a.status || 'Applied',
+            interview_status: a.interview_status || (a.interview?.status || (a.status === 'Interview Completed' ? 'Completed' : (a.status === 'AI Interview Invited' ? 'Invited' : 'Not Scheduled'))),
+            interview_score: a.interview_score || (a.interview?.result?.overall_performance || (a.status === 'Offer Extended' ? 93.0 : 0)),
+            interview_token: a.interview?.token || `token-${a.id}`,
+            has_f2f: Boolean(a.f2f_schedule || a.status === 'Face-to-Face Scheduled'),
+            applied_at: a.applied_at || new Date().toISOString(),
+            rank: idx + 1
+          };
+        });
+
+        const targetJob = jobs.find((j: any) => j.id === jId) || jobs[0];
         return {
-          job: jobs.find((j: any) => j.id === jId) || jobs[0],
-          candidates: filtered.length > 0 ? filtered : apps,
-          total_count: filtered.length > 0 ? filtered.length : apps.length
+          job: targetJob,
+          job_title: targetJob.title,
+          department: targetJob.department,
+          min_score_threshold: targetJob.min_score_threshold || 70.0,
+          candidates: mappedCandidates,
+          total_count: mappedCandidates.length
         } as unknown as T;
       }
       return apps as unknown as T;
@@ -467,12 +501,77 @@ function handleFallback<T>(endpoint: string, options: RequestInit = {}): T {
     if (insightMatch) {
       const aId = parseInt(insightMatch[1], 10);
       const app = apps.find((a: any) => a.id === aId) || apps[0];
+      const jId = app.job_id || 1;
+      const targetJob = jobs.find((j: any) => j.id === jId) || jobs[0];
+      const isSayan = app.candidate_email?.includes('sayan') || app.candidate_name?.toLowerCase().includes('sayan') || app.candidate_id === 7 || app.candidate_id === 5;
+      const candName = app.name || app.candidate_name || (isSayan ? 'Sayan Rooj' : 'Aarav Sharma');
+      const candEmail = app.email || app.candidate_email || (isSayan ? 'sayanrooj742137@gmail.com' : 'aarav.sharma@example.com');
+
       return {
-        application: app,
-        overall_score: app.overall_match_score || 88.0,
-        criteria_breakdown: app.scores?.criteria_breakdown || { 'Technical Skills': 85.0, 'Problem Solving': 80.0 },
-        requirement_evidence: app.scores?.requirement_evidence || [],
-        recruiter_override: app.scores?.recruiter_override || false,
+        application_id: app.id,
+        job_id: app.job_id,
+        job_title: app.job_title || targetJob.title,
+        job_department: app.job_department || targetJob.department,
+        status: app.status || 'Applied',
+        final_decision: app.final_decision || (app.status === 'Offer Extended' ? 'SELECTED' : null),
+        final_decision_at: app.final_decision_at || null,
+        final_decision_by: app.final_decision_by || 'Alex Morgan (Senior Recruiter)',
+        final_decision_notes: app.final_decision_notes || '',
+        status_summary: app.status_summary || `Application in ${app.status} stage`,
+        applied_at: app.applied_at || new Date().toISOString(),
+        candidate: {
+          id: app.candidate_id || (isSayan ? 5 : 1),
+          name: candName,
+          email: candEmail,
+          phone: app.phone || app.candidate_phone || (isSayan ? '+91 98832 60373' : '+91 98765 43210'),
+          headline: app.headline || app.candidate_headline || (isSayan ? 'AI / Full Stack Engineer & Machine Learning Specialist' : 'Software Engineer | Algorithms & System Design'),
+          bio: isSayan ? 'Specialized AI & Software Engineer with verified competence in Transformer architectures, FastAPI, and Next-gen Intelligent Platforms.' : 'Experienced engineer focusing on backend scalability and cloud architectures.',
+          education: app.education || app.candidate_education || 'Bachelor of Technology in Computer Science & Engineering',
+          experience_years: app.experience_years ?? 3.5,
+          skills: app.skills || ['Python', 'PyTorch', 'FastAPI', 'React', 'TypeScript', 'Transformers', 'SQL', 'Docker', 'AI System Design'],
+          projects: ['FUTUREVERSE Intelligent Recruitment Platform', 'Distributed LLM Inference Engine', 'Autonomous Proctored Testing Suite'],
+          certifications: ['Deep Learning Specialization (DeepLearning.AI)', 'AWS Certified Machine Learning']
+        },
+        scores: {
+          overall_score: app.overall_match_score || 93.8,
+          criteria_breakdown: app.scores?.criteria_breakdown || { 'Technical Skills': 95.0, 'Problem Solving': 90.0, 'Education': 92.0 },
+          requirement_evidence: app.scores?.requirement_evidence || [
+            { name: 'Python & AI Frameworks', type: 'TECH_SKILL', is_required: true, status: 'Met', evidence: 'Verified code contributions and API implementations.', impact: 'High' },
+            { name: "Bachelor's Degree in CS", type: 'EDUCATION', is_required: true, status: 'Met', evidence: 'Verified degree matches requirement criteria.', impact: 'High' }
+          ],
+          knockout_met: true,
+          human_review_recommended: false,
+          recruiter_override: app.scores?.recruiter_override || false,
+          override_reason: null
+        },
+        interview: app.interview || {
+          id: 1,
+          token: `token-${app.id}`,
+          status: app.status === 'Interview Completed' || app.status === 'Offer Extended' ? 'COMPLETED' : 'SCHEDULED',
+          duration_minutes: 25,
+          result: {
+            technical_score: 94.0,
+            problem_solving_score: 92.0,
+            role_knowledge_score: 95.0,
+            project_understanding_score: 90.0,
+            communication_score: 92.0,
+            overall_performance: 93.0,
+            strengths: ['Deep architectural understanding', 'Strong algorithm optimization', 'Clear verbal articulation'],
+            weaknesses: ['Could elaborate more on distributed consensus protocols'],
+            skill_gaps: ['Advanced Kubernetes cluster tuning'],
+            improvement_suggestions: ['Explore multi-cluster mesh architectures'],
+            summary: 'Candidate demonstrated exceptional competency across system design and applied artificial intelligence.'
+          },
+          transcript: [
+            { question: 'Explain how you design a resilient asynchronous background worker in Python.', question_type: 'TECHNICAL', answer: 'I utilize FastAPI background tasks or Celery with Redis, ensuring non-blocking thread execution for I/O operations and database transaction safety.', response_time_seconds: 35 },
+            { question: 'Describe your approach to model evaluation and preventing hallucinations.', question_type: 'TECHNICAL', answer: 'By applying grounded retrieval-augmented generation (RAG) with vector embeddings and strict citation verification.', response_time_seconds: 42 }
+          ],
+          integrity_events: []
+        },
+        f2f_schedule: app.f2f_schedule || null,
+        notes: app.notes || [
+          { id: 1, author: 'Alex Morgan (Senior Recruiter)', text: 'Candidate demonstrated stellar technical rigor and communication during screening. Highly recommended for final hiring manager round.', created_at: new Date().toISOString() }
+        ]
       } as unknown as T;
     }
 
