@@ -6,7 +6,8 @@ from backend.database import get_db
 from backend.models.user import User, CandidateProfile, OwnerProfile, UserRole
 from backend.schemas.auth import (
     CandidateRegister, UserLogin, Token, UserResponse,
-    PasswordResetRequest, PasswordResetConfirm
+    PasswordResetRequest, PasswordResetConfirm,
+    OtpRequest, OtpVerify, OtpResetPassword
 )
 from backend.services.auth_service import (
     hash_password, verify_password, create_access_token, get_current_user
@@ -88,12 +89,8 @@ async def login(req: UserLogin, request: Request, db: AsyncSession = Depends(get
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account is deactivated. Contact platform support.")
 
-    # Check if Owner is disabled
-    if user.role == UserRole.OWNER:
-        owner_res = await db.execute(select(OwnerProfile).filter(OwnerProfile.user_id == user.id))
-        owner_p = owner_res.scalars().first()
-        if owner_p and owner_p.is_disabled:
-            raise HTTPException(status_code=403, detail="Your recruiter account has been disabled by the Super Admin.")
+    if user.role != UserRole.CANDIDATE:
+        raise HTTPException(status_code=403, detail="Access denied: This portal is for candidates only. Please use the recruiter or admin login portal.")
 
     user.last_login = datetime.utcnow()
     await db.commit()
@@ -209,3 +206,85 @@ async def reset_password(req: PasswordResetConfirm, db: AsyncSession = Depends(g
     user.hashed_password = hash_password(req.new_password)
     await db.commit()
     return {"message": "Password updated successfully. Please log in with your new credentials."}
+
+import random
+import time
+
+_otp_store: dict = {}
+
+@router.post("/forgot-password/request-otp")
+async def request_otp(req: OtpRequest, db: AsyncSession = Depends(get_db)):
+    email = req.email.lower().strip()
+    result = await db.execute(select(User).filter(User.email == email))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this email. Please check and try again.")
+    
+    otp = f"{random.randint(100000, 999999)}"
+    expiry = time.time() + 600  # 10 minutes
+    _otp_store[email] = {
+        "otp": otp,
+        "expiry": expiry,
+        "attempts": 0,
+        "verified": False
+    }
+
+    await NotificationService.send_email(
+        to_email=user.email,
+        recipient_name=user.full_name,
+        subject="FUTUREVERSE — Password Reset Verification Code",
+        body_html=f"""
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+            <h2 style="color: #0284c7;">Password Reset Verification</h2>
+            <p>Hello <strong>{user.full_name}</strong>,</p>
+            <p>Your 6-digit verification code to reset your FUTUREVERSE password is:</p>
+            <div style="font-size: 28px; font-weight: bold; letter-spacing: 6px; color: #0f172a; padding: 12px 24px; background: #f1f5f9; border-radius: 8px; display: inline-block; margin: 16px 0;">
+                {otp}
+            </div>
+            <p>This code expires in 10 minutes. If you did not request a password reset, please ignore this email.</p>
+        </div>
+        """
+    )
+    return {"message": f"Verification code sent to {email}.", "demo_otp": otp, "email": email}
+
+@router.post("/forgot-password/verify-otp")
+async def verify_otp(req: OtpVerify):
+    email = req.email.lower().strip()
+    record = _otp_store.get(email)
+    if not record:
+        raise HTTPException(status_code=400, detail="No OTP request found. Please request a new code.")
+    if time.time() > record["expiry"]:
+        _otp_store.pop(email, None)
+        raise HTTPException(status_code=400, detail="Your verification code has expired. Please request a new one.")
+    
+    record["attempts"] += 1
+    if record["attempts"] > 5:
+        _otp_store.pop(email, None)
+        raise HTTPException(status_code=429, detail="Too many failed attempts. Please request a new verification code.")
+    
+    if req.otp.strip() != record["otp"]:
+        remaining = 5 - record["attempts"]
+        raise HTTPException(status_code=400, detail=f"Invalid verification code. {remaining} attempt{'s' if remaining != 1 else ''} remaining.")
+    
+    record["verified"] = True
+    return {"message": "OTP verified successfully.", "email": email}
+
+@router.post("/forgot-password/reset")
+async def reset_password_otp(req: OtpResetPassword, db: AsyncSession = Depends(get_db)):
+    email = req.email.lower().strip()
+    record = _otp_store.get(email)
+    if not record or not record.get("verified"):
+        raise HTTPException(status_code=400, detail="OTP not verified. Please complete the verification step first.")
+    if req.otp.strip() != record["otp"]:
+        raise HTTPException(status_code=400, detail="Invalid OTP. Please restart the forgot password process.")
+    
+    result = await db.execute(select(User).filter(User.email == email))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User account not found.")
+    
+    user.hashed_password = hash_password(req.new_password)
+    await db.commit()
+    _otp_store.pop(email, None)
+    return {"message": "Password reset successfully. You can now sign in with your new password."}
+

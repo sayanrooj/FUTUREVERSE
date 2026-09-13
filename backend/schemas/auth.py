@@ -45,3 +45,16 @@ class PasswordResetConfirm(BaseModel):
     email: EmailStr
     reset_code: str
     new_password: str = Field(..., min_length=6)
+
+class OtpRequest(BaseModel):
+    email: EmailStr
+
+class OtpVerify(BaseModel):
+    email: EmailStr
+    otp: str
+
+class OtpResetPassword(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str = Field(..., min_length=6)
+
