@@ -1,5 +1,6 @@
 import smtplib
 import uuid
+import asyncio
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -116,11 +117,14 @@ class NotificationService:
                 msg["To"] = to_email
                 msg.attach(MIMEText(html_content, "html"))
 
-                with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
-                    if settings.EMAIL_USE_TLS:
-                        server.starttls()
-                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                    server.sendmail(settings.EMAIL_FROM, to_email, msg.as_string())
+                def _do_send():
+                    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=5) as server:
+                        if settings.EMAIL_USE_TLS:
+                            server.starttls()
+                        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                        server.sendmail(settings.EMAIL_FROM, to_email, msg.as_string())
+
+                await asyncio.to_thread(_do_send)
                 provider_id = f"smtp-{uuid.uuid4().hex[:12]}"
                 status = "SENT"
                 error_msg = None

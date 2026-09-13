@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from datetime import datetime
@@ -213,7 +213,7 @@ import time
 _otp_store: dict = {}
 
 @router.post("/forgot-password/request-otp")
-async def request_otp(req: OtpRequest, db: AsyncSession = Depends(get_db)):
+async def request_otp(req: OtpRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     email = req.email.lower().strip()
     result = await db.execute(select(User).filter(User.email == email))
     user = result.scalars().first()
@@ -229,21 +229,23 @@ async def request_otp(req: OtpRequest, db: AsyncSession = Depends(get_db)):
         "verified": False
     }
 
-    await NotificationService.send_email(
+    body_html = f"""
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+        <h2 style="color: #0284c7;">Password Reset Verification</h2>
+        <p>Hello <strong>{user.full_name}</strong>,</p>
+        <p>Your 6-digit verification code to reset your FUTUREVERSE password is:</p>
+        <div style="font-size: 28px; font-weight: bold; letter-spacing: 6px; color: #0f172a; padding: 12px 24px; background: #f1f5f9; border-radius: 8px; display: inline-block; margin: 16px 0;">
+            {otp}
+        </div>
+        <p>This code expires in 10 minutes. If you did not request a password reset, please ignore this email.</p>
+    </div>
+    """
+    background_tasks.add_task(
+        NotificationService.send_email,
         to_email=user.email,
         recipient_name=user.full_name,
         subject="FUTUREVERSE — Password Reset Verification Code",
-        body_html=f"""
-        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-            <h2 style="color: #0284c7;">Password Reset Verification</h2>
-            <p>Hello <strong>{user.full_name}</strong>,</p>
-            <p>Your 6-digit verification code to reset your FUTUREVERSE password is:</p>
-            <div style="font-size: 28px; font-weight: bold; letter-spacing: 6px; color: #0f172a; padding: 12px 24px; background: #f1f5f9; border-radius: 8px; display: inline-block; margin: 16px 0;">
-                {otp}
-            </div>
-            <p>This code expires in 10 minutes. If you did not request a password reset, please ignore this email.</p>
-        </div>
-        """
+        body_html=body_html
     )
     return {"message": f"Verification code sent to {email}.", "demo_otp": otp, "email": email}
 
