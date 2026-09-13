@@ -21,22 +21,48 @@ export const AboutPage: React.FC = () => {
         </div>
 
         {/* Developer Attribution Card */}
-        <div className="p-8 rounded-2xl glass-panel border border-brand-500/30 bg-gradient-to-r from-slate-900/90 via-future-surface to-slate-900/90 shadow-glow-sm">
+        <div className="p-8 rounded-3xl glass-panel border border-brand-500/30 bg-gradient-to-r from-slate-900/90 via-future-surface to-slate-900/90 shadow-glow-sm">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div>
-              <span className="text-xs font-mono uppercase tracking-widest text-brand-400">
-                DEVELOPER ATTRIBUTION
-              </span>
-              <h2 className="text-2xl font-bold text-white mt-1">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-mono uppercase tracking-widest text-brand-400 font-semibold">
+                  DEVELOPER ATTRIBUTION
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Live Operational Platform
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white">
                 Created & Developed by Sayan Rooj
               </h2>
-              <p className="text-sm text-slate-400 mt-2 max-w-2xl leading-relaxed">
-                FUTUREVERSE was designed and developed by Sayan Rooj to demonstrate modern software architecture in recruitment technology. Combining multi-step requirement modeling, strict criteria weighting, adaptive AI interview proctoring, and auditable human overrides.
+              <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
+                FUTUREVERSE was designed, engineered, and deployed by Sayan Rooj to pioneer next-generation talent acquisition. Built from the ground up featuring multi-dimensional criteria modeling, adaptive proctored AI interview sessions, domain intelligence messaging, and auditable governance workflows.
               </p>
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <a
+                  href="https://github.com/sayanrooj/FUTUREVERSE"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-500/20 transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  View GitHub Repository
+                </a>
+                <a
+                  href="https://github.com/sayanrooj"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all"
+                >
+                  GitHub Profile (@sayanrooj)
+                </a>
+              </div>
             </div>
-            <div className="px-5 py-3 rounded-xl bg-brand-500/10 border border-brand-500/20 text-center shrink-0">
-              <div className="text-lg font-bold text-brand-400">FUTUREVERSE</div>
-              <div className="text-[11px] text-slate-400 font-mono">Release 2026.1</div>
+            <div className="px-6 py-4 rounded-2xl bg-brand-500/10 border border-brand-500/20 text-center shrink-0 space-y-1">
+              <div className="text-xl font-bold text-brand-400">FUTUREVERSE</div>
+              <div className="text-[11px] text-slate-400 font-mono">Production Edition</div>
+              <div className="text-[10px] text-emerald-400 font-mono font-semibold">IST (UTC+05:30) Standard</div>
             </div>
           </div>
         </div>

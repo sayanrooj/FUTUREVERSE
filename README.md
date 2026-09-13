@@ -1,98 +1,141 @@
-# FUTUREVERSE — Complete AI-Powered Recruitment Platform
-**Created & Developed by Sayan Rooj**
-*FUTUREVERSE © 2026*
+# FUTUREVERSE — Autonomous AI-Powered Recruitment Operating System
+**Created, Architected & Developed by Sayan Rooj**  
+*FUTUREVERSE © 2026 • Production Edition • India Standard Time (IST, UTC+05:30) Standard*
 
-> Intelligent Recruitment. Better Talent. Future Ready.  
-> An enterprise-grade AI-powered talent operating platform connecting organizations and candidates through explainable AI screening, dynamic criteria weighting, adaptive proctored interviews, and human-in-the-loop decisions.
-
----
-
-## 🌟 Core Architectural Philosophy
-
-FUTUREVERSE is architected on three foundational tenets:
-1. **Admin / Recruiter defines WHAT matters:** The human team controls 12-section requirements, required vs. preferred criteria, knockout mandates, and strict 100% criteria weights.
-2. **AI evaluates HOW WELL the candidate matches:** Modular AI services extract verified ground truth from CVs, calculate multidimensional scores, conduct adaptive interviews, and generate grounded natural language evidence (`Met 🟢`, `Not Met 🔴`, `Partially Met 🟡`, `Unclear ⚪`).
-3. **Human Recruiter makes the FINAL decision:** Recruiter reviews interview transcripts, checks proctoring telemetry, schedules Face-to-Face interviews, and applies human discretion overrides with audited justifications.
+[![Live Platform](https://img.shields.io/badge/Live_Platform-Operational-emerald?style=for-the-badge&logo=cloudflare)](https://d7b55d3a57a4c2.lhr.life)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-FUTUREVERSE-indigo?style=for-the-badge&logo=github)](https://github.com/sayanrooj/FUTUREVERSE)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI_Python_3.12-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+[![Vite React](https://img.shields.io/badge/Frontend-Vite_8_React_TypeScript-61DAFB?style=for-the-badge&logo=react)](https://vitejs.dev)
+[![TailwindCSS](https://img.shields.io/badge/Styling-TailwindCSS_Glassmorphism-38B2AC?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com)
 
 ---
 
-## 🚀 Key Features & Capabilities
+## 🌐 Live Access
 
-### 1. Three Strict RBAC Roles
-- **Super Admin / Maker:** Highest governance level. Manages recruiter accounts, public CMS, platform analytics, system health telemetry, and tamper-evident audit logs.
-- **Owner / Recruiter:** Dedicated `/owner-login` strictly **WITHOUT** public registration buttons. Features the 12-section Job Requirement Builder, 100% Criteria Weight Manager, candidate ranking & side-by-side comparison, deep candidate dossiers with evidence badges, private notes, and F2F scheduling.
-- **Candidate:** Registration, private encrypted CV upload, interactive AI parsing confirmation, dynamic application pipeline tracking, skill-gap analysis, and the live proctored AI Interview Room.
-
-### 2. Proctored Live AI Interview Room
-- Candidate camera preview and real-time microphone telemetry
-- Speaking AI interviewer avatar with audio prompts
-- Dynamically generated questions tailored to the candidate's actual projects & CV
-- Adaptive probing follow-up questions triggered by candidate answer depth
-- Responsible integrity monitoring: window blur, tab switching, and fullscreen tracking with gentle warning banners
-- Graceful technical reconnect handling clearly segregated from cheating flags
-- Immediate multidimensional evaluation rubric (Technical, Problem Solving, Role Knowledge, Project Depth, Communication)
-
-### 3. Preloaded Realistic Demo Positions
-1. **Senior AI / Machine Learning Engineer:** Hybrid, 3 openings, Min Score: 70%, 100% weighted criteria
-2. **Full Stack Software Engineer:** Hybrid, 2 openings, Min Score: 70%
-3. **Data Analyst & BI Specialist:** Remote, 2 openings, Min Score: 65%
-4. **Frontend UI/UX Engineer:** Remote, 2 openings, Min Score: 65%
-5. **Software Engineering Intern:** On-site, 5 openings, Min Score: 60% (No prior work exp required)
+* 🚀 **Public Live Link (Global HTTPS):** [https://d7b55d3a57a4c2.lhr.life](https://d7b55d3a57a4c2.lhr.life)
+* 💻 **Local Development Link:** [http://127.0.0.1:5173](http://127.0.0.1:5173)
+* 📖 **Interactive API Documentation:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+* 🐙 **GitHub Repository:** [https://github.com/sayanrooj/FUTUREVERSE](https://github.com/sayanrooj/FUTUREVERSE)
 
 ---
 
-## 🔑 Pre-Seeded Demonstration Accounts
+## 🌟 Executive Overview
 
-| Role | Email | Password | Preloaded Context |
-| :--- | :--- | :--- | :--- |
-| **Super Admin** | `admin@futureverse.ai` | `Admin@2026` | Master console, Owner management, CMS, Audit logs |
-| **Owner / Recruiter** | `recruiter@futureverse.ai` | `Recruiter@2026` | Alex Morgan, 5 active jobs, candidate ranking |
-| **Candidate (AI/ML)** | `aarav.sharma@example.com` | `Candidate@2026` | Aarav Sharma (92.4% match, interview completed, F2F scheduled) |
-| **Candidate (Full Stack)** | `priya.patel@example.com` | `Candidate@2026` | Priya Patel (88.5% match, shortlisted) |
-| **Candidate (Data)** | `rohan.verma@example.com` | `Candidate@2026` | Rohan Verma (82.0% match, review recommended) |
-| **Candidate (Intern)** | `ananya.sen@example.com` | `Candidate@2026` | Ananya Sen (CS student, projects extracted) |
+**FUTUREVERSE** is a high-performance talent acquisition operating system engineered to replace subjective, legacy hiring cycles with explainable artificial intelligence, strict criteria engineering, proctored adaptive interviews, and human-in-the-loop decision governance.
+
+Unlike black-box keyword parsers, FUTUREVERSE combines **deep resume schema extraction**, **recruiter-defined 100% weighted rubrics**, an **adaptive proctored AI interview chamber**, and an automated **Domain Intelligence Communication Suite** that keeps candidates notified part-by-part across every stage of recruitment.
 
 ---
 
-## 💻 Local Windows Quickstart
+## 🏛️ Core Architecture & Tech Stack
 
-### Prerequisites
-- Node.js 18+ (Tested on v24.14.1)
-- Python 3.12+ (or Python 3.14 with standard venv)
-
-### 1. Backend Setup & Startup
-```powershell
-cd C:\Users\sayan\.gemini\antigravity-ide\scratch\futureverse\backend
-
-# Activate the dedicated Python 3.12 virtual environment:
-.\venv\Scripts\activate
-
-# (Optional: If rebuilding dependencies)
-# pip install -r requirements.txt
-
-# Run the backend dev server (auto-seeds database on startup):
-python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-*Backend API Docs will be live at: [http://localhost:8000/docs](http://localhost:8000/docs)*
-
-### 2. Frontend Setup & Startup
-```powershell
-cd C:\Users\sayan\.gemini\antigravity-ide\scratch\futureverse\frontend
-
-# Start Vite dev server:
-npm.cmd run dev
+                               ┌─────────────────────────────────────────┐
+                               │       FUTUREVERSE CLIENT INTERFACE      │
+                               │  (Vite 8 • React 18 • TypeScript • CSS) │
+                               └────────────────────┬────────────────────┘
+                                                    │
+                                         HTTPS Reverse Proxy
+                                                    │
+                               ┌────────────────────▼────────────────────┐
+                               │        FASTAPI ASYNC ENGINE             │
+                               │  (Python 3.12 • SQLAlchemy 2.0 • Async) │
+                               └───────┬────────────┬────────────┬───────┘
+                                       │            │            │
+             ┌─────────────────────────┴──┐         │         ┌──┴─────────────────────────┐
+             │                            │         │         │                            │
+ ┌───────────▼──────────┐      ┌──────────▼──────┐  │ ┌───────▼───────────┐      ┌─────────▼──────────┐
+ │ SQLite Database      │      │ AI Proctored    │  │ │ Domain Intel      │      │ Non-Blocking       │
+ │ Relational Data Store│      │ Interview Room  │  │ │ Communication     │      │ Threaded SMTP      │
+ │ (12 Jobs • 14 Apps)  │      │ Telemetry Engine│  │ │ (5 Tech Tracks)   │      │ (Gmail TLS Engine) │
+ └──────────────────────┘      └─────────────────┘  │ └───────────────────┘      └────────────────────┘
+                                                    │
+                                       ┌────────────▼───────────┐
+                                       │ Real IST System Clock  │
+                                       │ (UTC+05:30 Standard)   │
+                                       └────────────────────────┘
 ```
-*Frontend application will be live at: [http://localhost:5173](http://localhost:5173)*
+
+* **Frontend:** Vite v8, React 18, TypeScript, TailwindCSS, Lucide Icons, Glassmorphism UI, Responsive Mobile Design.
+* **Backend:** FastAPI (Python 3.12), SQLAlchemy 2.0 Async ORM, SQLite + `aiosqlite`, Pydantic v2 validation.
+* **Email Engine:** Dual-MIME multipart transactional email service with non-blocking worker threads via `asyncio.to_thread(_dispatch_smtp_sync)`.
+* **Time Engine:** Standardized India Standard Time (IST, UTC+05:30) with real-time ticking clock on public interfaces.
+* **Security:** PBKDF2/Salted SHA-256 password hashing, JWT Bearer tokens, Role-Based Access Control (`SUPER_ADMIN`, `OWNER`, `CANDIDATE`).
 
 ---
 
-## 🛡️ Responsible AI & Ethical Standards
-- **Zero Protected Characteristic Inferences:** FUTUREVERSE strictly disallows facial emotion classification, accent discrimination, or demographic scoring.
-- **Explainable Natural Language Citations:** Every score is supported by transparent evidence items pointing directly to candidate credentials.
-- **Human Authority:** All hiring decisions, invitations, and contractual offers require explicit human recruiter authorization. Recruiter overrides are logged in the compliance audit trail.
+## 🎯 Key Platform Capabilities
+
+### 1. Multi-Step Job Requirement Builder
+* 12 distinct requirement categories (Technical Skills, Frameworks, Architecture, Cloud & Infrastructure, Education, Experience).
+* Required vs. Preferred weighting with mathematical validation guaranteeing category weight sums equal exactly 100%.
+* Automatic candidate ranking based on weighted similarity scores with explainable evidence badges:
+  * 🟢 **Met** — Verified match in candidate dossier
+  * 🟡 **Partially Met** — Found related competence
+  * ⚪ **Unclear** — Flagged for recruiter interview inspection
+  * 🔴 **Not Met** — Gap identified
+
+### 2. Proctored AI Interview Room
+* In-browser camera preview & real-time audio level monitoring.
+* Adaptive AI Interviewer avatar asking contextual questions synthesized from the candidate's actual projects.
+* Behavioral integrity detection: Window blur, tab switching, and fullscreen tracking with graceful network reconnection handling.
+* Instant multidimensional rubric evaluation across 5 vectors: Technical Knowledge, Problem Solving, Role Competence, Project Depth, and Communication.
+
+### 3. Stage-by-Stage Domain Communication Suite
+Recruiters have permanent access to 4 distinct communication stages per candidate, dynamically customized to one of 5 engineering tracks:
+* 🧠 **AI & Cognitive Systems Track**
+* ☁️ **Cloud Infrastructure & DevOps Track**
+* 🌐 **Full Stack & Distributed Systems Track**
+* 🎨 **Frontend Architecture & UI/UX Track**
+* 📊 **Data Analytics & Strategic Intelligence Track**
+
+#### The 4 Recruitment Stages:
+1. **Stage 1: AI Technical Assessment** — Tailored evaluation window, test parameters, and room link.
+2. **Stage 2: Face-to-Face Interview Round** — Date, time in IST, Google Meet link, and domain technical deep-dive agenda.
+3. **Stage 3: Extend Domain Job Offer** — Formal offer letter, Application ID, compensation details, and onboarding timeline.
+4. **Stage 4: Cohort Evaluation Update** — Respectful update with all completed interview scores and transcripts 100% preserved.
+
+### 4. Super Admin Governance & Support Desk
+* Persistent two-way support desk connecting candidates with platform administrators.
+* Immutable audit logs recording all job edits, status transitions, recruiter overrides, and email dispatches.
+* Public CMS management for company news, milestones, and tech events.
 
 ---
 
-## 👨‍💻 Developer Credit
-**FUTUREVERSE** was designed, architected, and developed by **Sayan Rooj**.  
-FUTUREVERSE © 2026. All rights reserved.
+## 🚀 Getting Started
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/sayanrooj/FUTUREVERSE.git
+cd FUTUREVERSE
+```
+
+### 2. Backend Setup
+```bash
+# Create and activate Python virtual environment
+python -m venv backend/venv
+.\backend\venv\Scripts\activate
+
+# Install dependencies
+pip install -r backend/requirements.txt
+
+# Run backend server
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+```
+
+### 3. Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The application will be accessible at `http://127.0.0.1:5173`.
+
+---
+
+## 👨‍💻 Developer Attribution
+
+Designed, engineered, and maintained by **Sayan Rooj**.  
+For inquiries, collaborations, or enterprise deployments, visit:  
+👉 **[https://github.com/sayanrooj](https://github.com/sayanrooj)**
