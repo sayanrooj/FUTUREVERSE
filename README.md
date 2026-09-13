@@ -2,7 +2,8 @@
 **Created, Architected & Developed by Sayan Rooj**  
 *FUTUREVERSE © 2026 • Production Edition • India Standard Time (IST, UTC+05:30) Standard*
 
-[![Live Platform](https://img.shields.io/badge/Live_Platform-Operational-emerald?style=for-the-badge&logo=cloudflare)](https://d7b55d3a57a4c2.lhr.life)
+[![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-LIVE-2ea44f?style=for-the-badge&logo=githubpages)](https://sayanrooj.github.io/FUTUREVERSE/)
+[![Live Platform](https://img.shields.io/badge/Tunnel_Live-Operational-emerald?style=for-the-badge&logo=cloudflare)](https://d7b55d3a57a4c2.lhr.life)
 [![GitHub Repository](https://img.shields.io/badge/GitHub-FUTUREVERSE-indigo?style=for-the-badge&logo=github)](https://github.com/sayanrooj/FUTUREVERSE)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI_Python_3.12-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
 [![Vite React](https://img.shields.io/badge/Frontend-Vite_8_React_TypeScript-61DAFB?style=for-the-badge&logo=react)](https://vitejs.dev)
@@ -10,10 +11,11 @@
 
 ---
 
-## 🌐 Live Access
+## 🌐 Live Access Links
 
-* 🚀 **Public Live Link (Global HTTPS):** [https://d7b55d3a57a4c2.lhr.life](https://d7b55d3a57a4c2.lhr.life)
-* 💻 **Local Development Link:** [http://127.0.0.1:5173](http://127.0.0.1:5173)
+* 🌟 **Official GitHub Pages Website:** **[https://sayanrooj.github.io/FUTUREVERSE/](https://sayanrooj.github.io/FUTUREVERSE/)**
+* 🚀 **Interactive Full-Stack Live Tunnel:** [https://d7b55d3a57a4c2.lhr.life](https://d7b55d3a57a4c2.lhr.life)
+* 💻 **Local Development Server:** [http://127.0.0.1:5173](http://127.0.0.1:5173)
 * 📖 **Interactive API Documentation:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 * 🐙 **GitHub Repository:** [https://github.com/sayanrooj/FUTUREVERSE](https://github.com/sayanrooj/FUTUREVERSE)
 
