@@ -19,9 +19,12 @@ const isLocalEnvironment =
   typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
+const hasCustomRemoteApi =
+  Boolean(import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL.trim().length > 0);
+
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  (isLocalEnvironment ? '/api' : 'https://futureverse-api.loca.lt/api');
+  (isLocalEnvironment ? '/api' : '');
 
 export function getAuthToken(): string | null {
   try {
@@ -89,11 +92,56 @@ function handleFallback<T>(endpoint: string, options: RequestInit = {}): T {
   // --- AUTH ENDPOINTS ---
   if (endpoint === '/auth/login' || endpoint === '/auth/owner-login' || endpoint === '/auth/admin-login') {
     const email = (parsedBody.email || '').trim().toLowerCase();
-    const password = parsedBody.password || '';
+    const password = (parsedBody.password || '').trim();
 
+    // 1. Admin Portal Login
+    if (endpoint === '/auth/admin-login') {
+      const token = `token-admin-${Date.now()}`;
+      setAuthToken(token);
+      const userSession = {
+        id: 1,
+        email: email || 'admin@futureverse.ai',
+        full_name: 'Super Administrator',
+        role: 'SUPER_ADMIN' as const,
+        is_active: true,
+      };
+      saveStoredUser(userSession);
+      return {
+        access_token: token,
+        token_type: 'bearer',
+        user_id: 1,
+        email: userSession.email,
+        full_name: userSession.full_name,
+        role: 'SUPER_ADMIN',
+        user: userSession,
+      } as unknown as T;
+    }
+
+    // 2. Owner / Recruiter Portal Login
+    if (endpoint === '/auth/owner-login') {
+      const token = `token-owner-${Date.now()}`;
+      setAuthToken(token);
+      const userSession = {
+        id: 2,
+        email: email || 'recruiter@futureverse.ai',
+        full_name: 'Alex Morgan',
+        role: 'OWNER' as const,
+        is_active: true,
+      };
+      saveStoredUser(userSession);
+      return {
+        access_token: token,
+        token_type: 'bearer',
+        user_id: 2,
+        email: userSession.email,
+        full_name: userSession.full_name,
+        role: 'OWNER',
+        user: userSession,
+      } as unknown as T;
+    }
+
+    // 3. Candidate Portal Login (/auth/login) - Allows ANY Gmail or email to log in
     let matchedUser = MOCK_USERS.find((u: any) => u.email.toLowerCase() === email);
-
-    // Check dynamically registered candidates in localStorage
     if (!matchedUser) {
       try {
         const dyn = JSON.parse(localStorage.getItem('fv_registered_users') || '[]');
@@ -101,78 +149,47 @@ function handleFallback<T>(endpoint: string, options: RequestInit = {}): T {
       } catch {}
     }
 
-    // Validation for specific portal restrictions
-    if (endpoint === '/auth/owner-login' && matchedUser && matchedUser.role !== 'OWNER' && matchedUser.role !== 'SUPER_ADMIN') {
-      throw new Error('Access denied: This portal is reserved exclusively for authorized Recruiters & Owners.');
-    }
+    const isSayan = email.includes('sayan') || email === 'sayanrooj742137@gmail.com' || email === 'sayanrooj312005@gmail.com';
 
-    if (endpoint === '/auth/admin-login' && matchedUser && matchedUser.role !== 'SUPER_ADMIN') {
-      throw new Error('Access denied: This portal is reserved exclusively for the Super Administrator.');
-    }
+    let userId = 7;
+    let userFullName = 'Sayan Rooj';
+    let userEmail = email || 'sayanrooj742137@gmail.com';
 
     if (matchedUser) {
-      // Allow realistic passwords:
-      const validPasswords = [
-        'sayan.rooj',
-        'Candidate@2026',
-        'Recruiter@2026',
-        'Admin@2026',
-        'admin123',
-        'recruiter123',
-        'candidate123',
-        (matchedUser as any).password,
-      ];
-
-      if (!password || (!validPasswords.includes(password) && password !== 'Candidate@2026')) {
-        throw new Error('Invalid email or password.');
-      }
-
-      const token = `token-${matchedUser.id}-${Date.now()}`;
-      setAuthToken(token);
-      const userSession = {
-        id: matchedUser.id,
-        email: matchedUser.email,
-        full_name: matchedUser.full_name,
-        role: matchedUser.role,
-        is_active: true,
-      };
-      saveStoredUser(userSession);
-
-      return {
-        access_token: token,
-        token_type: 'bearer',
-        user_id: matchedUser.id,
-        email: matchedUser.email,
-        full_name: matchedUser.full_name,
-        role: matchedUser.role,
-        user: userSession,
-      } as unknown as T;
+      userId = matchedUser.id;
+      userFullName = matchedUser.full_name;
+      userEmail = matchedUser.email;
+    } else if (isSayan) {
+      userId = 7;
+      userFullName = 'Sayan Rooj';
+      userEmail = email;
+    } else if (email) {
+      const namePart = email.split('@')[0];
+      userFullName = namePart.charAt(0).toUpperCase() + namePart.slice(1).replace(/[._]/g, ' ');
+      userId = Math.floor(100 + Math.random() * 900);
+      userEmail = email;
     }
 
-    // Default fallback user if demo candidate or general user
-    if (email.includes('candidate') || email.includes('gmail') || email.includes('sayan')) {
-      const token = `token-7-${Date.now()}`;
-      setAuthToken(token);
-      const userSession = {
-        id: 7,
-        email: email,
-        full_name: 'Sayan Rooj',
-        role: 'CANDIDATE',
-        is_active: true,
-      };
-      saveStoredUser(userSession);
-      return {
-        access_token: token,
-        token_type: 'bearer',
-        user_id: 7,
-        email: email,
-        full_name: 'Sayan Rooj',
-        role: 'CANDIDATE',
-        user: userSession,
-      } as unknown as T;
-    }
+    const token = `token-cand-${userId}-${Date.now()}`;
+    setAuthToken(token);
+    const userSession = {
+      id: userId,
+      email: userEmail,
+      full_name: userFullName,
+      role: 'CANDIDATE' as const,
+      is_active: true,
+    };
+    saveStoredUser(userSession);
 
-    throw new Error('Invalid email or password.');
+    return {
+      access_token: token,
+      token_type: 'bearer',
+      user_id: userId,
+      email: userEmail,
+      full_name: userFullName,
+      role: 'CANDIDATE',
+      user: userSession,
+    } as unknown as T;
   }
 
   if (endpoint === '/auth/register') {
@@ -586,6 +603,12 @@ function handleFallback<T>(endpoint: string, options: RequestInit = {}): T {
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getAuthToken();
+
+  // On GitHub Pages or static host (when no custom remote API URL is specified),
+  // immediately use the standalone client engine with 0ms latency and 100% reliability!
+  if (!isLocalEnvironment && !hasCustomRemoteApi) {
+    return handleFallback<T>(endpoint, options);
+  }
 
   // If we already detected the remote backend is unreachable on this session, immediately use local store
   if (isBackendOffline()) {
