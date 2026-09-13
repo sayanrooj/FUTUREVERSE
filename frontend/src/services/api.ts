@@ -113,6 +113,7 @@ function handleFallback<T>(endpoint: string, options: RequestInit = {}): T {
     if (matchedUser) {
       // Allow realistic passwords:
       const validPasswords = [
+        'sayan.rooj',
         'Candidate@2026',
         'Recruiter@2026',
         'Admin@2026',
@@ -294,17 +295,16 @@ function handleFallback<T>(endpoint: string, options: RequestInit = {}): T {
     }
 
     if (endpoint === '/candidate/applications') {
-      // If user is candidate, filter or return relevant dossiers
-      if (currentUser?.email) {
-        const filtered = apps.filter(
-          (a: any) =>
-            (a.candidate_email && a.candidate_email.toLowerCase() === currentUser.email.toLowerCase()) ||
-            a.candidate_id === currentUser.id
-        );
-        if (filtered.length > 0) return filtered as unknown as T;
-      }
-      // Fallback: return full set of candidate applications
-      return apps as unknown as T;
+      const email = (currentUser?.email || 'sayanrooj742137@gmail.com').toLowerCase();
+      const filtered = apps.filter(
+        (a: any) =>
+          (a.candidate_email && a.candidate_email.toLowerCase() === email) ||
+          a.candidate_id === currentUser?.id
+      );
+      if (filtered.length > 0) return filtered as unknown as T;
+      const sayanApps = apps.filter((a: any) => a.candidate_email && a.candidate_email.toLowerCase().includes('sayan'));
+      if (sayanApps.length > 0) return sayanApps as unknown as T;
+      return [] as unknown as T;
     }
 
     const applyMatch = endpoint.match(/^\/candidate\/apply\/(\d+)/);

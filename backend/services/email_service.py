@@ -163,9 +163,17 @@ class EmailService:
     - Full DB Auditing via EmailLog
     """
 
+    _last_verify_time: float = 0.0
+    _cached_verify_result: Optional[Dict[str, Any]] = None
+
     @classmethod
-    def verify_connection(cls) -> Dict[str, Any]:
-        """Validates SMTP configuration safely without leaking credentials."""
+    def verify_connection(cls, force_refresh: bool = False) -> Dict[str, Any]:
+        """Validates SMTP configuration safely without leaking credentials, cached for 60s."""
+        import time
+        now = time.time()
+        if not force_refresh and cls._cached_verify_result is not None and (now - cls._last_verify_time < 60.0):
+            return cls._cached_verify_result
+
         host = settings.SMTP_HOST
         port = settings.SMTP_PORT
         user = settings.SMTP_USER
@@ -204,7 +212,7 @@ class EmailService:
                 f"as {masked_user} (TLS: {settings.EMAIL_USE_TLS})"
             )
             print(status_msg)
-            return {
+            res = {
                 "configured": True,
                 "ready": True,
                 "host": host,
@@ -212,10 +220,13 @@ class EmailService:
                 "user": masked_user,
                 "error": None
             }
+            cls._cached_verify_result = res
+            cls._last_verify_time = time.time()
+            return res
         except Exception as e:
             err_msg = str(e)
             print(f"[EMAIL SERVICE] CONNECTION TEST FAILED: Unable to authenticate with {host}:{port} - {err_msg}")
-            return {
+            res = {
                 "configured": True,
                 "ready": False,
                 "host": host,
@@ -223,6 +234,9 @@ class EmailService:
                 "user": masked_user,
                 "error": err_msg
             }
+            cls._cached_verify_result = res
+            cls._last_verify_time = time.time()
+            return res
 
     @staticmethod
     def _render_html(
