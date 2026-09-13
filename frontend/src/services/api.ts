@@ -1,4 +1,9 @@
-const API_BASE_URL = '/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? '/api'
+    : 'https://d7b55d3a57a4c2.lhr.life/api');
 
 export function getAuthToken(): string | null {
   return localStorage.getItem('futureverse_token');
