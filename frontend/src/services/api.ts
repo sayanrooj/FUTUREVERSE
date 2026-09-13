@@ -95,6 +95,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
         access_token: 'mock-candidate-token-2026',
         token_type: 'bearer',
         user_id: 3,
+        email: 'sayanrooj742137@gmail.com',
+        full_name: 'Sayan Rooj',
+        role: 'CANDIDATE',
         user: {
           id: 3,
           email: 'sayanrooj742137@gmail.com',

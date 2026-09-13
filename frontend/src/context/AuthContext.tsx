@@ -61,7 +61,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearAuthToken();
     setTokenState(null);
     setUser(null);
-    window.location.href = '/';
+    const basePath = import.meta.env.BASE_URL || '/';
+    window.location.href = basePath;
   };
 
   return (

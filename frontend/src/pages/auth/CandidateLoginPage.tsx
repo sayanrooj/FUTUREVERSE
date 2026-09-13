@@ -21,11 +21,16 @@ export const CandidateLoginPage: React.FC = () => {
     setError(null);
     try {
       const res = await api.auth.login({ email, password });
+      const userId = res.user_id ?? res.user?.id ?? 3;
+      const userEmail = res.email ?? res.user?.email ?? email;
+      const userFullName = res.full_name ?? res.user?.full_name ?? (email.toLowerCase().includes('sayan') ? 'Sayan Rooj' : 'Aarav Sharma');
+      const userRole = (res.role ?? res.user?.role ?? 'CANDIDATE') as any;
+
       login(res.access_token, {
-        id: res.user_id,
-        email: res.email,
-        full_name: res.full_name,
-        role: res.role,
+        id: userId,
+        email: userEmail,
+        full_name: userFullName,
+        role: userRole,
         is_active: true
       });
       navigate('/candidate/dashboard');
