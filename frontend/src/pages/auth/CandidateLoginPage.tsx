@@ -117,6 +117,17 @@ export const CandidateLoginPage: React.FC = () => {
           </button>
         </form>
 
+        {/* Forgot Password */}
+        <div className="text-center">
+          <Link
+            to="/forgot-password"
+            id="candidate-forgot-pw-link"
+            className="text-xs text-slate-400 hover:text-brand-400 transition-colors hover:underline"
+          >
+            Forgot your password?
+          </Link>
+        </div>
+
         <div className="pt-4 border-t border-slate-800 text-center text-xs text-slate-400">
           New candidate on FUTUREVERSE?{' '}
           <Link to="/register" className="text-brand-400 font-semibold hover:underline">

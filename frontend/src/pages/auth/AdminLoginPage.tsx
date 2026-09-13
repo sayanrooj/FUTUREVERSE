@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShieldCheck, Lock, Mail, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -109,6 +109,17 @@ export const AdminLoginPage: React.FC = () => {
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
+
+        {/* Forgot Password */}
+        <div className="text-center">
+          <Link
+            to="/forgot-password"
+            id="admin-forgot-pw-link"
+            className="text-xs text-slate-400 hover:text-brand-400 transition-colors hover:underline"
+          >
+            Forgot your password?
+          </Link>
+        </div>
 
         <div className="pt-4 border-t border-slate-800 text-center text-xs text-slate-500">
           Super Admin Console • Confidential Access Only

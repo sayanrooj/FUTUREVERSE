@@ -19,6 +19,7 @@ import { CandidateLoginPage } from './pages/auth/CandidateLoginPage';
 import { CandidateRegisterPage } from './pages/auth/CandidateRegisterPage';
 import { OwnerLoginPage } from './pages/auth/OwnerLoginPage';
 import { AdminLoginPage } from './pages/auth/AdminLoginPage';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 
 // Candidate Portal
 import { CandidateDashboard } from './pages/candidate/CandidateDashboard';
@@ -103,6 +104,7 @@ export const App: React.FC = () => {
             <Route path="/candidate-login" element={<CandidateLoginPage />} />
             <Route path="/login" element={<Navigate to="/candidate-login" replace />} />
             <Route path="/register" element={<CandidateRegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/owner-login" element={<OwnerLoginPage />} />
             <Route path="/recruiter-login" element={<Navigate to="/owner-login" replace />} />
             <Route path="/admin-login" element={<AdminLoginPage />} />

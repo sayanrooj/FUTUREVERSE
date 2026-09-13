@@ -89,152 +89,143 @@ function handleFallback<T>(endpoint: string, options: RequestInit = {}): T {
     } catch {}
   }
 
-  // --- AUTH ENDPOINTS ---
+  // --- AUTH ENDPOINTS (STRICT CREDENTIAL VERIFICATION) ---
   if (endpoint === '/auth/login' || endpoint === '/auth/owner-login' || endpoint === '/auth/admin-login') {
     const email = (parsedBody.email || '').trim().toLowerCase();
     const password = (parsedBody.password || '').trim();
 
-    // 1. Admin Portal Login
-    if (endpoint === '/auth/admin-login') {
-      const token = `token-admin-${Date.now()}`;
-      setAuthToken(token);
-      const userSession = {
-        id: 1,
-        email: email || 'admin@futureverse.ai',
-        full_name: 'Super Administrator',
-        role: 'SUPER_ADMIN' as const,
-        is_active: true,
-      };
-      saveStoredUser(userSession);
-      return {
-        access_token: token,
-        token_type: 'bearer',
-        user_id: 1,
-        email: userSession.email,
-        full_name: userSession.full_name,
-        role: 'SUPER_ADMIN',
-        user: userSession,
-      } as unknown as T;
-    }
+    if (!email || !password) throw new Error('Email and password are required.');
 
-    // 2. Owner / Recruiter Portal Login
-    if (endpoint === '/auth/owner-login') {
-      const token = `token-owner-${Date.now()}`;
-      setAuthToken(token);
-      const userSession = {
-        id: 2,
-        email: email || 'recruiter@futureverse.ai',
-        full_name: 'Alex Morgan',
-        role: 'OWNER' as const,
-        is_active: true,
-      };
-      saveStoredUser(userSession);
-      return {
-        access_token: token,
-        token_type: 'bearer',
-        user_id: 2,
-        email: userSession.email,
-        full_name: userSession.full_name,
-        role: 'OWNER',
-        user: userSession,
-      } as unknown as T;
-    }
+    const allUsers: any[] = [...MOCK_USERS];
+    try {
+      const dyn = JSON.parse(localStorage.getItem('fv_registered_users') || '[]');
+      allUsers.push(...dyn);
+    } catch {}
 
-    // 3. Candidate Portal Login (/auth/login) - Allows ANY Gmail or email to log in
-    let matchedUser = MOCK_USERS.find((u: any) => u.email.toLowerCase() === email);
-    if (!matchedUser) {
-      try {
-        const dyn = JSON.parse(localStorage.getItem('fv_registered_users') || '[]');
-        matchedUser = dyn.find((u: any) => u.email.toLowerCase() === email);
-      } catch {}
-    }
+    let pwOverrides: Record<string, string> = {};
+    try { pwOverrides = JSON.parse(localStorage.getItem('fv_user_passwords') || '{}'); } catch {}
 
-    const isSayan = email.includes('sayan') || email === 'sayanrooj742137@gmail.com' || email === 'sayanrooj312005@gmail.com';
-
-    let userId = 7;
-    let userFullName = 'Sayan Rooj';
-    let userEmail = email || 'sayanrooj742137@gmail.com';
-
-    if (matchedUser) {
-      userId = matchedUser.id;
-      userFullName = matchedUser.full_name;
-      userEmail = matchedUser.email;
-    } else if (isSayan) {
-      userId = 7;
-      userFullName = 'Sayan Rooj';
-      userEmail = email;
-    } else if (email) {
-      const namePart = email.split('@')[0];
-      userFullName = namePart.charAt(0).toUpperCase() + namePart.slice(1).replace(/[._]/g, ' ');
-      userId = Math.floor(100 + Math.random() * 900);
-      userEmail = email;
-    }
-
-    const token = `token-cand-${userId}-${Date.now()}`;
-    setAuthToken(token);
-    const userSession = {
-      id: userId,
-      email: userEmail,
-      full_name: userFullName,
-      role: 'CANDIDATE' as const,
-      is_active: true,
+    const defaultPasswords: Record<string, string> = {
+      'admin@futureverse.ai': 'Admin@2026',
+      'recruiter@futureverse.ai': 'Recruiter@2026',
+      'sayanrooj742137@gmail.com': 'sayan.rooj',
+      'sayanrooj312005@gmail.com': 'sayan.rooj',
+      'aarav.sharma@example.com': 'Candidate@2026',
+      'priya.patel@example.com': 'Candidate@2026',
+      'rohan.verma@example.com': 'Candidate@2026',
+      'ananya.sen@example.com': 'Candidate@2026',
     };
-    saveStoredUser(userSession);
 
-    return {
-      access_token: token,
-      token_type: 'bearer',
-      user_id: userId,
-      email: userEmail,
-      full_name: userFullName,
-      role: 'CANDIDATE',
-      user: userSession,
-    } as unknown as T;
+    const matchedUser = allUsers.find((u: any) => u.email.toLowerCase() === email);
+    if (!matchedUser) throw new Error('No account found with this email address. Please check your email or create an account.');
+
+    const effectivePassword = pwOverrides[email] || matchedUser.password || defaultPasswords[email];
+    if (!effectivePassword || password !== effectivePassword) throw new Error('Invalid email or password. Please try again.');
+
+    if (endpoint === '/auth/admin-login' && matchedUser.role !== 'SUPER_ADMIN') throw new Error('Access denied: This portal is reserved exclusively for the Super Administrator.');
+    if (endpoint === '/auth/owner-login' && matchedUser.role !== 'OWNER' && matchedUser.role !== 'SUPER_ADMIN') throw new Error('Access denied: This portal is reserved exclusively for Recruiters and Owners.');
+    if (endpoint === '/auth/login' && matchedUser.role !== 'CANDIDATE') throw new Error('Access denied: This portal is for candidates only. Please use the correct login portal.');
+
+    const token = `token-${matchedUser.role.toLowerCase()}-${matchedUser.id}-${Date.now()}`;
+    setAuthToken(token);
+    const userSession = { id: matchedUser.id, email: matchedUser.email, full_name: matchedUser.full_name, role: matchedUser.role as any, is_active: true };
+    saveStoredUser(userSession);
+    return { access_token: token, token_type: 'bearer', user_id: matchedUser.id, email: matchedUser.email, full_name: matchedUser.full_name, role: matchedUser.role, user: userSession } as unknown as T;
+  }
+
+  // --- FORGOT PASSWORD: REQUEST OTP ---
+  if (endpoint === '/auth/forgot-password/request-otp') {
+    const email = (parsedBody.email || '').trim().toLowerCase();
+    if (!email) throw new Error('Email is required.');
+
+    const allUsers: any[] = [...MOCK_USERS];
+    try { const dyn = JSON.parse(localStorage.getItem('fv_registered_users') || '[]'); allUsers.push(...dyn); } catch {}
+
+    const matchedUser = allUsers.find((u: any) => u.email.toLowerCase() === email);
+    if (!matchedUser) throw new Error('No account found with this email. Please check and try again.');
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const expiry = Date.now() + 10 * 60 * 1000;
+    try {
+      const otpStore = JSON.parse(localStorage.getItem('fv_otp_store') || '{}');
+      otpStore[email] = { otp, expiry, attempts: 0, verified: false };
+      localStorage.setItem('fv_otp_store', JSON.stringify(otpStore));
+    } catch {}
+
+    return { message: `Verification code sent to ${email}.`, demo_otp: otp, email } as unknown as T;
+  }
+
+  // --- FORGOT PASSWORD: VERIFY OTP ---
+  if (endpoint === '/auth/forgot-password/verify-otp') {
+    const email = (parsedBody.email || '').trim().toLowerCase();
+    const otp = (parsedBody.otp || '').trim();
+    if (!email || !otp) throw new Error('Email and OTP code are required.');
+
+    let otpStore: Record<string, any> = {};
+    try { otpStore = JSON.parse(localStorage.getItem('fv_otp_store') || '{}'); } catch {}
+
+    const record = otpStore[email];
+    if (!record) throw new Error('No OTP request found. Please request a new code.');
+    if (Date.now() > record.expiry) { delete otpStore[email]; try { localStorage.setItem('fv_otp_store', JSON.stringify(otpStore)); } catch {} throw new Error('Your verification code has expired. Please request a new one.'); }
+
+    record.attempts = (record.attempts || 0) + 1;
+    if (record.attempts > 5) { delete otpStore[email]; try { localStorage.setItem('fv_otp_store', JSON.stringify(otpStore)); } catch {} throw new Error('Too many failed attempts. Please request a new verification code.'); }
+
+    if (otp !== record.otp) {
+      try { localStorage.setItem('fv_otp_store', JSON.stringify(otpStore)); } catch {}
+      const remaining = 5 - record.attempts;
+      throw new Error(`Invalid verification code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
+    }
+
+    record.verified = true;
+    try { localStorage.setItem('fv_otp_store', JSON.stringify(otpStore)); } catch {}
+    return { message: 'OTP verified successfully.', email } as unknown as T;
+  }
+
+  // --- FORGOT PASSWORD: RESET PASSWORD ---
+  if (endpoint === '/auth/forgot-password/reset') {
+    const email = (parsedBody.email || '').trim().toLowerCase();
+    const otp = (parsedBody.otp || '').trim();
+    const newPassword = (parsedBody.new_password || '').trim();
+
+    if (!email || !otp || !newPassword) throw new Error('Email, OTP, and new password are required.');
+    if (newPassword.length < 6) throw new Error('Password must be at least 6 characters long.');
+
+    let otpStore: Record<string, any> = {};
+    try { otpStore = JSON.parse(localStorage.getItem('fv_otp_store') || '{}'); } catch {}
+
+    const record = otpStore[email];
+    if (!record || !record.verified) throw new Error('OTP not verified. Please complete the verification step first.');
+    if (otp !== record.otp) throw new Error('Invalid OTP. Please restart the forgot password process.');
+
+    try { const pwOverrides = JSON.parse(localStorage.getItem('fv_user_passwords') || '{}'); pwOverrides[email] = newPassword; localStorage.setItem('fv_user_passwords', JSON.stringify(pwOverrides)); } catch {}
+
+    delete otpStore[email];
+    try { localStorage.setItem('fv_otp_store', JSON.stringify(otpStore)); } catch {}
+    return { message: 'Password reset successfully. You can now sign in with your new password.' } as unknown as T;
   }
 
   if (endpoint === '/auth/register') {
-    const newUser = {
-      id: Date.now(),
-      email: (parsedBody.email || '').trim().toLowerCase(),
-      full_name: parsedBody.full_name || 'Candidate',
-      role: 'CANDIDATE',
-      password: parsedBody.password || 'Candidate@2026',
-      is_active: true,
-    };
-    try {
-      const dyn = JSON.parse(localStorage.getItem('fv_registered_users') || '[]');
-      dyn.push(newUser);
-      localStorage.setItem('fv_registered_users', JSON.stringify(dyn));
-    } catch {}
+    const newEmail = (parsedBody.email || '').trim().toLowerCase();
+    const newPw = parsedBody.password || '';
+    if (!newEmail || !newPw) throw new Error('Email and password are required.');
 
-    const token = `token-${newUser.id}-${Date.now()}`;
+    const allUsers: any[] = [...MOCK_USERS];
+    try { const dyn = JSON.parse(localStorage.getItem('fv_registered_users') || '[]'); allUsers.push(...dyn); } catch {}
+    if (allUsers.some((u: any) => u.email.toLowerCase() === newEmail)) throw new Error('An account with this email already exists. Please sign in instead.');
+
+    const newUser = { id: Date.now(), email: newEmail, full_name: parsedBody.full_name || 'Candidate', role: 'CANDIDATE', password: newPw, is_active: true };
+    try { const dyn = JSON.parse(localStorage.getItem('fv_registered_users') || '[]'); dyn.push(newUser); localStorage.setItem('fv_registered_users', JSON.stringify(dyn)); } catch {}
+
+    const token = `token-candidate-${newUser.id}-${Date.now()}`;
     setAuthToken(token);
     saveStoredUser(newUser);
-
-    return {
-      access_token: token,
-      token_type: 'bearer',
-      user_id: newUser.id,
-      email: newUser.email,
-      full_name: newUser.full_name,
-      role: 'CANDIDATE',
-    } as unknown as T;
+    return { access_token: token, token_type: 'bearer', user_id: newUser.id, email: newUser.email, full_name: newUser.full_name, role: 'CANDIDATE' } as unknown as T;
   }
 
   if (endpoint === '/auth/me') {
     const user = getStoredUser();
     if (user) return user as unknown as T;
-    // If token exists, construct default valid user
-    const token = getAuthToken();
-    if (token) {
-      return {
-        id: 7,
-        email: 'sayanrooj742137@gmail.com',
-        full_name: 'Sayan Rooj',
-        role: 'CANDIDATE',
-        is_active: true,
-      } as unknown as T;
-    }
     throw new Error('Not authenticated');
   }
 
@@ -685,8 +676,10 @@ export const api = {
     ownerLogin: (data: any) => request<any>('/auth/owner-login', { method: 'POST', body: JSON.stringify(data) }),
     adminLogin: (data: any) => request<any>('/auth/admin-login', { method: 'POST', body: JSON.stringify(data) }),
     getMe: () => request<any>('/auth/me'),
-    forgotPassword: (email: string) => request<any>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
-    resetPassword: (data: any) => request<any>('/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
+    // Forgot password / OTP reset flow
+    requestOtp: (email: string) => request<any>('/auth/forgot-password/request-otp', { method: 'POST', body: JSON.stringify({ email }) }),
+    verifyOtp: (email: string, otp: string) => request<any>('/auth/forgot-password/verify-otp', { method: 'POST', body: JSON.stringify({ email, otp }) }),
+    resetPasswordOtp: (email: string, otp: string, new_password: string) => request<any>('/auth/forgot-password/reset', { method: 'POST', body: JSON.stringify({ email, otp, new_password }) }),
   },
 
   // Jobs
