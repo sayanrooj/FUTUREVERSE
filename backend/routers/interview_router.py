@@ -231,25 +231,29 @@ async def complete_interview(token: str, db: AsyncSession = Depends(get_db)):
 
     interview.status = InterviewStatus.COMPLETED.value
     interview.completed_at = datetime.utcnow()
-    app.status = ApplicationStatus.INTERVIEW_COMPLETED.value
+    if app:
+        app.status = ApplicationStatus.INTERVIEW_COMPLETED.value
 
     # Notify candidate
-    if cand_user:
-        await NotificationService.create_notification(
-            db=db,
-            user_id=cand_user.id,
-            title=f"AI Interview Completed: {job.title}",
-            message=f"Your AI interview has been evaluated. Overall performance score: {eval_result['overall_performance']}/100.",
-            notif_type="SUCCESS",
-            link="/candidate/applications"
-        )
+    if cand_user and job:
+        try:
+            await NotificationService.create_notification(
+                db=db,
+                user_id=cand_user.id,
+                title=f"AI Interview Completed: {job.title}",
+                message=f"Your AI interview has been evaluated. Overall performance score: {eval_result['overall_performance']}/100.",
+                notif_type="SUCCESS",
+                link="/candidate/applications"
+            )
 
-        await NotificationService.send_email(
-            to_email=cand_user.email,
-            recipient_name=cand_user.full_name,
-            subject=f"AI Interview Completed: {job.title} — FUTUREVERSE",
-            body_html=f"<p>Thank you for completing your AI interview for <strong>{job.title}</strong>. Your evaluation has been compiled with an overall performance score of <strong>{eval_result['overall_performance']}%</strong>. Our hiring team will review your session.</p>"
-        )
+            await NotificationService.send_email(
+                to_email=cand_user.email,
+                recipient_name=cand_user.full_name,
+                subject=f"AI Interview Completed: {job.title} — FUTUREVERSE",
+                body_html=f"<p>Thank you for completing your AI interview for <strong>{job.title}</strong>. Your evaluation has been compiled with an overall performance score of <strong>{eval_result['overall_performance']}%</strong>. Our hiring team will review your session.</p>"
+            )
+        except Exception:
+            pass
 
     await db.commit()
 

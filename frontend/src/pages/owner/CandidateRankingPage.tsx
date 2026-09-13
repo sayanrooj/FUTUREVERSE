@@ -12,7 +12,10 @@ import {
   X,
   FileText,
   Video,
-  Award
+  Award,
+  Sparkles,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -29,6 +32,67 @@ export const CandidateRankingPage: React.FC = () => {
   const [selectedForCompare, setSelectedForCompare] = useState<number[]>([]);
   const [compareModalOpen, setCompareModalOpen] = useState(false);
   const [compareResults, setCompareResults] = useState<any[]>([]);
+
+  // AI Interview Question Studio State
+  const [questionModalOpen, setQuestionModalOpen] = useState(false);
+  const [jobQuestions, setJobQuestions] = useState<any[]>([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [savingQuestions, setSavingQuestions] = useState(false);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [newQText, setNewQText] = useState('');
+  const [newQType, setNewQType] = useState('TECHNICAL');
+  const [newQSkill, setNewQSkill] = useState('');
+  const [newQHint, setNewQHint] = useState('');
+
+  const openQuestionStudio = async () => {
+    if (!jobId) return;
+    setQuestionModalOpen(true);
+    setLoadingQuestions(true);
+    setSaveSuccessMsg(null);
+    try {
+      const res = await api.owner.getJobInterviewQuestions(parseInt(jobId, 10));
+      setJobQuestions(res.questions || []);
+    } catch {
+      setJobQuestions([]);
+    } finally {
+      setLoadingQuestions(false);
+    }
+  };
+
+  const handleSaveQuestions = async () => {
+    if (!jobId) return;
+    setSavingQuestions(true);
+    try {
+      await api.owner.setJobInterviewQuestions(parseInt(jobId, 10), jobQuestions);
+      setSaveSuccessMsg(`Custom questions deployed to AI interview round for ${jobTitle}!`);
+      setTimeout(() => setSaveSuccessMsg(null), 4000);
+    } catch {
+      // Handled
+    } finally {
+      setSavingQuestions(false);
+    }
+  };
+
+  const addQuestion = () => {
+    if (!newQText.trim()) return;
+    setJobQuestions([
+      ...jobQuestions,
+      {
+        id: Date.now(),
+        question_text: newQText.trim(),
+        question_type: newQType,
+        target_skill: newQSkill.trim() || 'Core Competency',
+        context_hint: newQHint.trim() || ''
+      }
+    ]);
+    setNewQText('');
+    setNewQSkill('');
+    setNewQHint('');
+  };
+
+  const removeQuestion = (idx: number) => {
+    setJobQuestions(jobQuestions.filter((_, i) => i !== idx));
+  };
 
   const fetchCandidates = async () => {
     if (!jobId) return;
@@ -97,15 +161,26 @@ export const CandidateRankingPage: React.FC = () => {
             </p>
           </div>
 
-          {selectedForCompare.length > 0 && (
+          <div className="flex items-center gap-2.5 self-start md:self-auto flex-wrap">
             <button
-              onClick={handleOpenCompare}
-              className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-future-indigo hover:bg-indigo-500 shadow-glow-indigo transition-all flex items-center gap-2 self-start md:self-auto"
+              onClick={openQuestionStudio}
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-brand-300 bg-brand-500/15 border border-brand-500/30 hover:bg-brand-500/25 transition-all flex items-center gap-1.5 shadow-sm"
+              title="Configure questions for AI Interview Round"
             >
-              <GitCompare className="w-4 h-4" />
-              <span>Compare Selected ({selectedForCompare.length})</span>
+              <Sparkles className="w-3.5 h-3.5 text-brand-400" />
+              <span>Configure AI Round Questions</span>
             </button>
-          )}
+
+            {selectedForCompare.length > 0 && (
+              <button
+                onClick={handleOpenCompare}
+                className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-future-indigo hover:bg-indigo-500 shadow-glow-indigo transition-all flex items-center gap-2"
+              >
+                <GitCompare className="w-4 h-4" />
+                <span>Compare Selected ({selectedForCompare.length})</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Filter & Search Bar */}
@@ -346,6 +421,194 @@ export const CandidateRankingPage: React.FC = () => {
               >
                 Close Comparison
               </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* --- AI INTERVIEW QUESTION STUDIO MODAL --- */}
+      {questionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="bg-future-surface border border-slate-700 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl max-h-[90vh] flex flex-col justify-between overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-800 pb-4 shrink-0">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-brand-500/20 border border-brand-500/40 text-brand-400 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <h2 className="text-lg font-bold text-white">AI Interview Question Studio</h2>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Target Position: <strong className="text-white">{jobTitle}</strong>
+                </p>
+              </div>
+
+              <button
+                onClick={() => setQuestionModalOpen(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Success Feedback Alert */}
+            {saveSuccessMsg && (
+              <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2 animate-fade-in shrink-0">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{saveSuccessMsg}</span>
+              </div>
+            )}
+
+            {/* Modal Scrollable Body */}
+            <div className="overflow-y-auto space-y-5 pr-1 flex-1">
+              <div className="text-xs text-slate-300 leading-relaxed bg-slate-900/50 p-3.5 rounded-xl border border-slate-800">
+                Candidates attending the AI Interview round for this position will be systematically evaluated on these questions. You can add new questions, specify question types, target skills, and guidance hints.
+              </div>
+
+              {loadingQuestions ? (
+                <div className="py-12 text-center text-xs text-slate-400">
+                  Loading configured questions...
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs font-mono text-slate-400">
+                    <span>CONFIGURED ROUND QUESTIONS ({jobQuestions.length})</span>
+                    <span className="text-[11px] text-brand-400">All questions active in proctored session</span>
+                  </div>
+
+                  {jobQuestions.map((q, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-start justify-between gap-4 hover:border-slate-700 transition-all"
+                    >
+                      <div className="space-y-1.5 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 text-[10px] font-mono font-bold flex items-center justify-center">
+                            {idx + 1}
+                          </span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                            {q.question_type}
+                          </span>
+                          <span className="text-[10px] font-mono text-emerald-400">
+                            Skill: {q.target_skill || 'Core Competency'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-white leading-relaxed font-medium">
+                          {q.question_text}
+                        </p>
+                        {q.context_hint && (
+                          <p className="text-[11px] text-slate-400 italic">
+                            💡 Hint: {q.context_hint}
+                          </p>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => removeQuestion(idx)}
+                        className="p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-all shrink-0"
+                        title="Delete Question"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add New Question Section */}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <Plus className="w-3.5 h-3.5 text-brand-400" />
+                  <span>Add New Question to AI Interview Round</span>
+                </span>
+
+                <textarea
+                  rows={2}
+                  value={newQText}
+                  onChange={(e) => setNewQText(e.target.value)}
+                  placeholder="e.g. Explain how you design fault-tolerant asynchronous microservices with graceful backoff..."
+                  className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-1">Question Type</label>
+                    <select
+                      value={newQType}
+                      onChange={(e) => setNewQType(e.target.value)}
+                      className="w-full px-3 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white"
+                    >
+                      <option value="TECHNICAL">Technical Deep Dive</option>
+                      <option value="PROBLEM_SOLVING">Problem Solving</option>
+                      <option value="SYSTEM_DESIGN">System Design & Architecture</option>
+                      <option value="SCENARIO_BASED">Scenario / STAR</option>
+                      <option value="ROLE_SPECIFIC">Role Competency</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-1">Target Skill</label>
+                    <input
+                      type="text"
+                      value={newQSkill}
+                      onChange={(e) => setNewQSkill(e.target.value)}
+                      placeholder="e.g. FastAPI, Transformers"
+                      className="w-full px-3 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-1">Context Hint for Candidate</label>
+                    <input
+                      type="text"
+                      value={newQHint}
+                      onChange={(e) => setNewQHint(e.target.value)}
+                      placeholder="e.g. Focus on scalability trade-offs"
+                      className="w-full px-3 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={addQuestion}
+                    disabled={!newQText.trim()}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all flex items-center gap-1.5 disabled:opacity-40"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add to Question List</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between border-t border-slate-800 pt-4 shrink-0">
+              <span className="text-xs text-slate-400 font-mono">
+                Total Questions: <strong className="text-white">{jobQuestions.length}</strong>
+              </span>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setQuestionModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleSaveQuestions}
+                  disabled={savingQuestions || jobQuestions.length === 0}
+                  className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-brand-600 to-future-indigo hover:from-brand-500 hover:to-future-indigo/90 shadow-glow transition-all flex items-center gap-1.5 disabled:opacity-40"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{savingQuestions ? 'Saving Questions...' : 'Save & Deploy to AI Round'}</span>
+                </button>
+              </div>
             </div>
 
           </div>

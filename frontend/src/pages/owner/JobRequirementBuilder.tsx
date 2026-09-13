@@ -80,6 +80,70 @@ export const JobRequirementBuilder: React.FC = () => {
   const [techThreshold, setTechThreshold] = useState(60.0);
   const [problemThreshold, setProblemThreshold] = useState(60.0);
 
+  // Recruiter Configurable AI Interview Round Questions
+  const [aiQuestions, setAiQuestions] = useState<any[]>([
+    {
+      id: 1,
+      question_text: 'Welcome to the AI interview round. Please introduce yourself and summarize your core technical experience that directly qualifies you for this position.',
+      question_type: 'ROLE_SPECIFIC',
+      target_skill: 'Technical Background',
+      context_hint: 'Focus on proven experience, core technical stack, and passion for engineering excellence.'
+    },
+    {
+      id: 2,
+      question_text: 'Walk us through a critical production architecture you designed. What trade-offs did you make between performance, latency, and maintainability?',
+      question_type: 'PROJECT_BASED',
+      target_skill: 'System Architecture',
+      context_hint: 'Highlight specific design decisions, technologies utilized, and measurable outcomes.'
+    },
+    {
+      id: 3,
+      question_text: 'Suppose an API or microservice begins experiencing intermittent 504 gateway timeouts and thread exhaustion under peak traffic. How would you systematically diagnose and resolve this?',
+      question_type: 'PROBLEM_SOLVING',
+      target_skill: 'Diagnostic Methodology',
+      context_hint: 'Structure your systematic investigation from metrics and tracing to root cause mitigation.'
+    },
+    {
+      id: 4,
+      question_text: 'How do you establish rigorous test coverage, clean code standards, and automated CI/CD safeguards in a high-velocity engineering team?',
+      question_type: 'TECHNICAL',
+      target_skill: 'Software Quality & CI/CD',
+      context_hint: 'Mention automated unit/integration testing, peer reviews, and deployment safeguards.'
+    },
+    {
+      id: 5,
+      question_text: 'Describe a challenging situation where a product requirement shifted right before a release deadline. How did you negotiate scope, align with stakeholders, and deliver value?',
+      question_type: 'SCENARIO_BASED',
+      target_skill: 'Communication & Adaptability',
+      context_hint: 'Use the STAR method (Situation, Task, Action, Result).'
+    }
+  ]);
+  const [newQuestionText, setNewQuestionText] = useState('');
+  const [newQuestionType, setNewQuestionType] = useState('TECHNICAL');
+  const [newQuestionTargetSkill, setNewQuestionTargetSkill] = useState('');
+  const [newQuestionHint, setNewQuestionHint] = useState('');
+
+  const addAiQuestion = () => {
+    if (!newQuestionText.trim()) return;
+    setAiQuestions([
+      ...aiQuestions,
+      {
+        id: Date.now(),
+        question_text: newQuestionText.trim(),
+        question_type: newQuestionType,
+        target_skill: newQuestionTargetSkill.trim() || 'Core Competency',
+        context_hint: newQuestionHint.trim() || ''
+      }
+    ]);
+    setNewQuestionText('');
+    setNewQuestionTargetSkill('');
+    setNewQuestionHint('');
+  };
+
+  const removeAiQuestion = (idx: number) => {
+    setAiQuestions(aiQuestions.filter((_, i) => i !== idx));
+  };
+
   // Templates
   const [templates, setTemplates] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -200,11 +264,18 @@ export const JobRequirementBuilder: React.FC = () => {
         min_score_threshold: minScoreThreshold,
         category_thresholds: {
           'Technical Skills': techThreshold,
-          'Problem Solving': problemThreshold
+          'Problem Solving': problemThreshold,
+          interview_questions: aiQuestions
         },
         requirements: reqsPayload,
         criteria
       });
+
+      if (created?.id) {
+        try {
+          await api.owner.setJobInterviewQuestions(created.id, aiQuestions);
+        } catch {}
+      }
 
       navigate('/owner/dashboard');
     } catch (err: any) {
@@ -585,6 +656,133 @@ export const JobRequirementBuilder: React.FC = () => {
                 />
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* SECTION 4.5: AI INTERVIEW ROUND QUESTION STUDIO */}
+        <div className="p-6 sm:p-8 rounded-3xl glass-panel border border-future-indigo/40 space-y-6 bg-gradient-to-b from-slate-900/40 to-future-surface/40">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-brand-400" />
+                <h2 className="text-base font-bold text-white">
+                  5. AI Interview Round Questions (Custom Domain Round)
+                </h2>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Define the specific questions candidates will face in the AI proctored interview. Configure types, target competencies, and hints.
+              </p>
+            </div>
+            <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-brand-500/15 text-brand-400 border border-brand-500/30">
+              {aiQuestions.length} Questions Configured
+            </span>
+          </div>
+
+          {/* Existing Questions List */}
+          <div className="space-y-3">
+            {aiQuestions.map((q, idx) => (
+              <div
+                key={idx}
+                className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 flex items-start justify-between gap-4 hover:border-slate-700 transition-all"
+              >
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-400 text-[10px] font-mono font-bold flex items-center justify-center">
+                      {idx + 1}
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                      {q.question_type}
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-400">
+                      Skill: {q.target_skill}
+                    </span>
+                  </div>
+                  <p className="text-xs text-white leading-relaxed font-medium">
+                    {q.question_text}
+                  </p>
+                  {q.context_hint && (
+                    <p className="text-[11px] text-slate-400 italic">
+                      💡 Hint: {q.context_hint}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeAiQuestion(idx)}
+                  className="p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-all shrink-0"
+                  title="Remove Question"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Add New Question Sub-form */}
+          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-3">
+            <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+              <Plus className="w-3.5 h-3.5 text-brand-400" />
+              <span>Add Custom AI Interview Question</span>
+            </span>
+
+            <textarea
+              rows={2}
+              value={newQuestionText}
+              onChange={(e) => setNewQuestionText(e.target.value)}
+              placeholder="e.g. Describe your methodology for orchestrating low-latency vector embeddings in production..."
+              className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[10px] text-slate-400 mb-1">Question Category</label>
+                <select
+                  value={newQuestionType}
+                  onChange={(e) => setNewQuestionType(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white"
+                >
+                  <option value="TECHNICAL">Technical Deep Dive</option>
+                  <option value="PROBLEM_SOLVING">Problem Solving & Debugging</option>
+                  <option value="PROJECT_BASED">Architecture & Projects</option>
+                  <option value="SCENARIO_BASED">Scenario & STAR Behavioral</option>
+                  <option value="ROLE_SPECIFIC">Role Introduction & Culture</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-400 mb-1">Target Skill or Competency</label>
+                <input
+                  type="text"
+                  value={newQuestionTargetSkill}
+                  onChange={(e) => setNewQuestionTargetSkill(e.target.value)}
+                  placeholder="e.g. System Design, PyTorch"
+                  className="w-full px-3 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-400 mb-1">Evaluation Hint for Candidate</label>
+                <input
+                  type="text"
+                  value={newQuestionHint}
+                  onChange={(e) => setNewQuestionHint(e.target.value)}
+                  placeholder="e.g. Focus on scalability trade-offs"
+                  className="w-full px-3 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={addAiQuestion}
+                disabled={!newQuestionText.trim()}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 transition-all flex items-center gap-1.5 disabled:opacity-40"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Question to AI Round</span>
+              </button>
+            </div>
           </div>
         </div>
 

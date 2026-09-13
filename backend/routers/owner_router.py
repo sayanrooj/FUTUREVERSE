@@ -627,27 +627,31 @@ async def invite_to_ai_interview(
         db.add(interview)
         await db.flush()
 
-        # Generate customized questions
-        parsed_dict = {}
-        if app.candidate.resumes and app.candidate.resumes[-1].parsed_data:
-            p = app.candidate.resumes[-1].parsed_data
-            parsed_dict = {
-                "technical_skills": p.technical_skills,
-                "projects": p.projects,
-                "experience_years": p.experience_years
-            }
+        # Generate or load customized interview questions
+        custom_qs = (job.category_thresholds or {}).get("interview_questions")
+        if custom_qs and len(custom_qs) > 0:
+            questions = custom_qs
+        else:
+            parsed_dict = {}
+            if app.candidate.resumes and app.candidate.resumes[-1].parsed_data:
+                p = app.candidate.resumes[-1].parsed_data
+                parsed_dict = {
+                    "technical_skills": p.technical_skills,
+                    "projects": p.projects,
+                    "experience_years": p.experience_years
+                }
 
-        questions = InterviewService.generate_adaptive_questions(
-            job_title=job.title,
-            requirements=job.requirements,
-            parsed_cv=parsed_dict
-        )
+            questions = InterviewService.generate_adaptive_questions(
+                job_title=job.title,
+                requirements=job.requirements,
+                parsed_cv=parsed_dict
+            )
 
         for idx, q in enumerate(questions, start=1):
             q_item = InterviewQuestion(
                 interview_id=interview.id,
                 question_text=q["question_text"],
-                question_type=q["question_type"],
+                question_type=q.get("question_type", "TECHNICAL"),
                 order_num=idx,
                 target_skill=q.get("target_skill"),
                 context_hint=q.get("context_hint")
@@ -925,3 +929,145 @@ async def add_recruiter_note(
     await db.commit()
     await db.refresh(note)
     return {"message": "Note added successfully.", "note_id": note.id}
+
+
+@router.get("/jobs/{job_id}/interview-questions")
+async def get_job_interview_questions(
+    job_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieves recruiter-configured AI interview questions for a position or intelligent defaults."""
+    res = await db.execute(
+        select(Job).filter(Job.id == job_id).options(selectinload(Job.requirements))
+    )
+    job = res.scalars().first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job position not found.")
+
+    category_thresholds = dict(job.category_thresholds or {})
+    custom_qs = category_thresholds.get("interview_questions")
+    if custom_qs and isinstance(custom_qs, list) and len(custom_qs) > 0:
+        return {
+            "job_id": job.id,
+            "job_title": job.title,
+            "is_customized": True,
+            "questions": custom_qs
+        }
+
+    # Generate smart role defaults
+    default_qs = [
+        {
+            "id": 1,
+            "question_text": f"Welcome to the AI interview round for {job.title}. Please introduce yourself and summarize your core technical experience that directly qualifies you for this position.",
+            "question_type": "ROLE_SPECIFIC",
+            "target_skill": "Technical Background",
+            "context_hint": "Focus on proven experience, core technical stack, and passion for engineering excellence."
+        },
+        {
+            "id": 2,
+            "question_text": f"Walk us through a critical production system or architecture you designed. What trade-offs did you make between performance, latency, and maintainability?",
+            "question_type": "PROJECT_BASED",
+            "target_skill": "System Architecture",
+            "context_hint": "Explain system components, protocols, and technical decision making."
+        },
+        {
+            "id": 3,
+            "question_text": "Suppose an API or microservice begins experiencing intermittent 504 gateway timeouts and thread exhaustion under peak traffic. How would you systematically diagnose and resolve this?",
+            "question_type": "PROBLEM_SOLVING",
+            "target_skill": "Diagnostic Methodology",
+            "context_hint": "Structure your systematic investigation from metrics and tracing to root cause mitigation."
+        },
+        {
+            "id": 4,
+            "question_text": "How do you establish rigorous test coverage, clean code standards, and automated CI/CD safeguards in a high-velocity engineering team?",
+            "question_type": "TECHNICAL",
+            "target_skill": "Software Quality & CI/CD",
+            "context_hint": "Highlight automated testing, continuous integration, and staging deployment gates."
+        },
+        {
+            "id": 5,
+            "question_text": "Describe a scenario where engineering constraints clashed with business deadlines. How did you negotiate scope, align with stakeholders, and protect product quality?",
+            "question_type": "SCENARIO_BASED",
+            "target_skill": "Communication & Alignment",
+            "context_hint": "Use the STAR framework (Situation, Task, Action, Result)."
+        }
+    ]
+
+    return {
+        "job_id": job.id,
+        "job_title": job.title,
+        "is_customized": False,
+        "questions": default_qs
+    }
+
+
+@router.post("/jobs/{job_id}/interview-questions")
+async def set_job_interview_questions(
+    job_id: int,
+    req: Dict[str, Any],
+    current_user: User = Depends(require_roles(UserRole.OWNER, UserRole.SUPER_ADMIN)),
+    db: AsyncSession = Depends(get_db)
+):
+    """Sets, updates, and persists custom questions for a job's AI interview round."""
+    res = await db.execute(
+        select(Job).filter(Job.id == job_id).options(
+            selectinload(Job.applications).selectinload(Application.interview).selectinload(Interview.questions)
+        )
+    )
+    job = res.scalars().first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job position not found.")
+
+    questions_list = req.get("questions") or []
+    if not questions_list or not isinstance(questions_list, list):
+        raise HTTPException(status_code=400, detail="Questions must be a non-empty list.")
+
+    # Validate and normalize
+    normalized = []
+    for idx, q in enumerate(questions_list, start=1):
+        text = (q.get("question_text") or "").strip()
+        if not text:
+            continue
+        normalized.append({
+            "id": idx,
+            "question_text": text,
+            "question_type": q.get("question_type") or "TECHNICAL",
+            "order_num": idx,
+            "target_skill": q.get("target_skill") or "Engineering",
+            "context_hint": q.get("context_hint") or ""
+        })
+
+    if not normalized:
+        raise HTTPException(status_code=400, detail="At least one valid question with question_text is required.")
+
+    # Save to job category thresholds
+    thresholds = dict(job.category_thresholds or {})
+    thresholds["interview_questions"] = normalized
+    job.category_thresholds = thresholds
+
+    # Synchronize any existing scheduled interviews for this job
+    for app in job.applications:
+        if app.interview and app.interview.status == InterviewStatus.SCHEDULED.value:
+            # Clear old questions and assign new
+            for old_q in list(app.interview.questions):
+                await db.delete(old_q)
+            await db.flush()
+
+            for n_q in normalized:
+                new_q = InterviewQuestion(
+                    interview_id=app.interview.id,
+                    question_text=n_q["question_text"],
+                    question_type=n_q["question_type"],
+                    order_num=n_q["order_num"],
+                    target_skill=n_q["target_skill"],
+                    context_hint=n_q["context_hint"]
+                )
+                db.add(new_q)
+
+    await db.commit()
+    return {
+        "message": f"Successfully configured {len(normalized)} custom questions for {job.title} AI interview round.",
+        "job_id": job.id,
+        "questions": normalized
+    }
+

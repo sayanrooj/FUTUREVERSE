@@ -620,24 +620,353 @@ function handleFallback<T>(endpoint: string, options: RequestInit = {}): T {
       saveStoredApplications(updatedApps);
       return { message: 'Face-to-Face interview scheduled successfully.' } as unknown as T;
     }
+
+    const jobQuestionsMatch = endpoint.match(/\/owner\/jobs\/(\d+)\/interview-questions/);
+    if (jobQuestionsMatch) {
+      const jobId = parseInt(jobQuestionsMatch[1], 10);
+      const targetJob = jobs.find((j: any) => j.id === jobId) || jobs[0];
+      let customQuestionsStore: Record<string, any> = {};
+      try {
+        customQuestionsStore = JSON.parse(localStorage.getItem('fv_custom_job_questions') || '{}');
+      } catch {}
+
+      if (method === 'POST') {
+        const incomingQuestions = (parsedBody.questions || []).map((q: any, idx: number) => ({
+          id: idx + 1,
+          question_text: q.question_text || '',
+          question_type: q.question_type || 'TECHNICAL',
+          target_skill: q.target_skill || 'Core Competency',
+          context_hint: q.context_hint || ''
+        })).filter((q: any) => q.question_text.trim().length > 0);
+
+        customQuestionsStore[String(jobId)] = incomingQuestions;
+        try {
+          localStorage.setItem('fv_custom_job_questions', JSON.stringify(customQuestionsStore));
+        } catch {}
+
+        return {
+          message: `Successfully configured ${incomingQuestions.length} custom questions for ${targetJob.title} AI interview round.`,
+          job_id: jobId,
+          questions: incomingQuestions
+        } as unknown as T;
+      } else {
+        const existing = customQuestionsStore[String(jobId)];
+        if (existing && Array.isArray(existing) && existing.length > 0) {
+          return {
+            job_id: jobId,
+            job_title: targetJob.title,
+            is_customized: true,
+            questions: existing
+          } as unknown as T;
+        }
+
+        const defaults = [
+          {
+            id: 1,
+            question_text: `Welcome to the AI interview round for ${targetJob.title}. Please introduce yourself and summarize your core technical experience that directly qualifies you for this position.`,
+            question_type: 'ROLE_SPECIFIC',
+            target_skill: 'Technical Background',
+            context_hint: 'Focus on proven experience, core technical stack, and passion for engineering excellence.'
+          },
+          {
+            id: 2,
+            question_text: 'Walk us through a critical production system or architecture you designed. What trade-offs did you make between performance, latency, and maintainability?',
+            question_type: 'PROJECT_BASED',
+            target_skill: 'System Architecture',
+            context_hint: 'Explain system components, protocols, and technical decision making.'
+          },
+          {
+            id: 3,
+            question_text: 'Suppose an API or microservice begins experiencing intermittent 504 gateway timeouts and thread exhaustion under peak traffic. How would you systematically diagnose and resolve this?',
+            question_type: 'PROBLEM_SOLVING',
+            target_skill: 'Diagnostic Methodology',
+            context_hint: 'Structure your systematic investigation from metrics and tracing to root cause mitigation.'
+          },
+          {
+            id: 4,
+            question_text: 'How do you establish rigorous test coverage, clean code standards, and automated CI/CD safeguards in a high-velocity engineering team?',
+            question_type: 'TECHNICAL',
+            target_skill: 'Software Quality & CI/CD',
+            context_hint: 'Highlight automated testing, continuous integration, and staging deployment gates.'
+          },
+          {
+            id: 5,
+            question_text: 'Describe a scenario where engineering constraints clashed with business deadlines. How did you negotiate scope, align with stakeholders, and protect product quality?',
+            question_type: 'SCENARIO_BASED',
+            target_skill: 'Communication & Alignment',
+            context_hint: 'Use the STAR framework (Situation, Task, Action, Result).'
+          }
+        ];
+
+        return {
+          job_id: jobId,
+          job_title: targetJob.title,
+          is_customized: false,
+          questions: defaults
+        } as unknown as T;
+      }
+    }
   }
 
-  // --- INTERVIEW ENDPOINTS ---
+  // --- INTERVIEW ENDPOINTS (FULL LIFECYCLE: GET SESSION, SUBMIT ANSWER, INTEGRITY TELEMETRY, COMPLETE EVALUATION) ---
   if (endpoint.startsWith('/interview')) {
-    if (endpoint.includes('/session/')) {
+    let sessionStore: Record<string, any> = {};
+    try {
+      sessionStore = JSON.parse(localStorage.getItem('fv_interview_sessions') || '{}');
+    } catch {}
+
+    const tokenMatch = endpoint.match(/\/interview\/session\/([^/]+)/);
+    const token = tokenMatch ? tokenMatch[1] : 'demo-token';
+
+    // 1. Submit Answer
+    if (endpoint.endsWith('/answer')) {
+      const sess = sessionStore[token] || {};
+      const answers = sess.answers || {};
+      answers[parsedBody.question_id] = {
+        answer_text: parsedBody.answer_text,
+        response_time_seconds: parsedBody.response_time_seconds || 35,
+        submitted_at: new Date().toISOString()
+      };
+      sess.answers = answers;
+      sessionStore[token] = sess;
+      try {
+        localStorage.setItem('fv_interview_sessions', JSON.stringify(sessionStore));
+      } catch {}
+
+      const answerLower = (parsedBody.answer_text || '').toLowerCase();
+      let followUp = 'That is a helpful technical formulation. Could you elaborate on how you handled edge cases or concurrency constraints during that implementation?';
+      if (answerLower.includes('cache') || answerLower.includes('redis')) {
+        followUp = 'You highlighted caching strategies. How did you manage cache invalidation and prevent stale data propagation under high write volume?';
+      } else if (answerLower.includes('test') || answerLower.includes('ci/cd')) {
+        followUp = 'Given your emphasis on automated verification, how did you balance comprehensive regression coverage against rapid delivery velocity?';
+      } else if (answerLower.includes('database') || answerLower.includes('sql') || answerLower.includes('latency')) {
+        followUp = 'How did you profile query performance, index utilization, and connection pooling under peak concurrency?';
+      }
+
       return {
-        session_id: 1,
-        token: 'interview-token-verified',
-        candidate_name: 'Sayan Rooj',
-        job_title: 'Senior AI / Cognitive Systems Engineer',
-        status: 'READY',
-        questions: [
-          { id: 1, question_text: 'Explain how you design transformer attention heads for distributed inference.', time_limit: 120 },
-          { id: 2, question_text: 'How do you handle data drift in continuous cognitive pipelines?', time_limit: 120 }
-        ],
-        proctoring_enabled: true
+        message: 'Answer recorded successfully.',
+        follow_up_question: followUp
       } as unknown as T;
     }
+
+    // 2. Log Integrity Event (Tab Switch / Window Blur / Proctored Alert)
+    if (endpoint.endsWith('/integrity-event')) {
+      const sess = sessionStore[token] || {};
+      const events = sess.integrity_events || [];
+      const newEvent = {
+        event_type: parsedBody.event_type || 'Tab Switch',
+        severity: parsedBody.severity || 'MEDIUM',
+        evidence: parsedBody.evidence || 'Candidate switched tab or lost browser focus.',
+        timestamp: new Date().toISOString()
+      };
+      events.push(newEvent);
+      sess.integrity_events = events;
+      sessionStore[token] = sess;
+      try {
+        localStorage.setItem('fv_interview_sessions', JSON.stringify(sessionStore));
+      } catch {}
+
+      const warningMsg = parsedBody.event_type === 'Tab Switch'
+        ? `Proctoring Warning: Tab switch detected (Event #${events.length}). Browser focus must remain on the interview room.`
+        : `Proctoring Notice: Focus shift detected. Your telemetry is logged for recruiter review.`;
+
+      return {
+        action: 'WARNING',
+        severity: newEvent.severity,
+        warning_message: warningMsg,
+        total_events: events.length
+      } as unknown as T;
+    }
+
+    // 3. Complete Interview Session & Generate Evaluation
+    if (endpoint.endsWith('/complete')) {
+      const sess = sessionStore[token] || {};
+      const defaultEval = {
+        overall_performance: 92.4,
+        technical_score: 94.0,
+        problem_solving_score: 91.5,
+        role_knowledge_score: 95.0,
+        project_understanding_score: 93.0,
+        communication_score: 90.0,
+        strengths: [
+          'Articulate explanation of core engineering principles and architecture tradeoffs.',
+          'Demonstrated systematic diagnostic approach when breaking down high-concurrency troubleshooting.',
+          'Strong command of automated testing, CI/CD pipelines, and data reliability standards.'
+        ],
+        weaknesses: [
+          'Could elaborate more on quantified production latency percentiles (e.g. p99 SLAs).'
+        ],
+        skill_gaps: [
+          'Advanced multi-region active-active database replication tuning.'
+        ],
+        improvement_suggestions: [
+          'Incorporate telemetry metrics (Prometheus, OpenTelemetry) directly into diagnostic answers.',
+          'Discuss graceful degradation patterns under distributed node partitions.'
+        ],
+        interview_summary: 'Candidate demonstrated exceptional competency across system design and applied engineering. Answers were structured, technically deep, and showed solid production maturity.'
+      };
+
+      sess.is_completed = true;
+      sess.status = 'COMPLETED';
+      sess.evaluation = defaultEval;
+      sess.completed_at = new Date().toISOString();
+      sessionStore[token] = sess;
+      try {
+        localStorage.setItem('fv_interview_sessions', JSON.stringify(sessionStore));
+      } catch {}
+
+      // Synchronize matching application to 'Interview Completed'
+      const allStoredApps = getStoredApplications();
+      let matchedApp = allStoredApps.find((a: any) =>
+        a.interview?.token === token ||
+        `token-${a.id}` === token ||
+        token.includes(String(a.id))
+      );
+
+      if (!matchedApp && allStoredApps.length > 0) {
+        matchedApp = allStoredApps.find((a: any) => a.status === 'AI Interview Invited') || allStoredApps[0];
+      }
+
+      if (matchedApp) {
+        const updatedApps = allStoredApps.map((a: any) => {
+          if (a.id === matchedApp.id) {
+            return {
+              ...a,
+              status: 'Interview Completed',
+              status_summary: 'AI Interview completed and evaluated.',
+              interview_score: defaultEval.overall_performance,
+              interview_status: 'Completed',
+              interview: {
+                ...(a.interview || {}),
+                token: token,
+                status: 'Completed',
+                is_completed: true,
+                result: defaultEval
+              }
+            };
+          }
+          return a;
+        });
+        saveStoredApplications(updatedApps);
+      }
+
+      return {
+        message: 'Interview submitted and evaluated successfully.',
+        interview_id: sess.interview_id || 1,
+        evaluation: defaultEval
+      } as unknown as T;
+    }
+
+    // 4. Get Result
+    if (endpoint.endsWith('/result')) {
+      const sess = sessionStore[token] || {};
+      if (sess.evaluation) {
+        return {
+          ...sess.evaluation,
+          interview_id: sess.interview_id || 1,
+          integrity_events_count: (sess.integrity_events || []).length
+        } as unknown as T;
+      }
+      return {
+        technical_score: 94.0,
+        problem_solving_score: 91.5,
+        role_knowledge_score: 95.0,
+        project_understanding_score: 93.0,
+        communication_score: 90.0,
+        overall_performance: 92.4,
+        strengths: [
+          'Articulate explanation of core engineering principles and architecture tradeoffs.',
+          'Demonstrated systematic diagnostic approach when breaking down high-concurrency troubleshooting.',
+          'Strong command of automated testing, CI/CD pipelines, and data reliability standards.'
+        ],
+        weaknesses: [
+          'Could elaborate more on quantified production latency percentiles (e.g. p99 SLAs).'
+        ],
+        skill_gaps: [
+          'Advanced multi-region active-active database replication tuning.'
+        ],
+        improvement_suggestions: [
+          'Incorporate telemetry metrics directly into diagnostic answers.'
+        ],
+        summary: 'Candidate demonstrated exceptional competency across system design and applied engineering.',
+        integrity_events_count: 0
+      } as unknown as T;
+    }
+
+    // 5. Get Session
+    const allStoredApps = getStoredApplications();
+    let matchedApp = allStoredApps.find((a: any) =>
+      a.interview?.token === token ||
+      `token-${a.id}` === token ||
+      token.includes(String(a.id))
+    );
+    if (!matchedApp && allStoredApps.length > 0) {
+      matchedApp = allStoredApps.find((a: any) => a.status === 'AI Interview Invited') || allStoredApps[0];
+    }
+
+    const currentJobId = matchedApp?.job_id || 1;
+    const allJobs = getStoredJobs();
+    const targetJob = allJobs.find((j: any) => j.id === currentJobId) || allJobs[0] || { id: 1, title: 'Engineering Role', department: 'Engineering' };
+    const candidateName = matchedApp?.candidate_name || matchedApp?.name || 'Sayan Rooj';
+
+    // Check if custom questions exist for this job
+    let customQuestionsStore: Record<string, any> = {};
+    try {
+      customQuestionsStore = JSON.parse(localStorage.getItem('fv_custom_job_questions') || '{}');
+    } catch {}
+
+    const jobQuestions = customQuestionsStore[String(currentJobId)] || [
+      {
+        id: 1,
+        question_text: `Welcome to the AI interview round for ${targetJob.title}. Please introduce yourself and summarize your core technical experience that directly qualifies you for this position.`,
+        question_type: 'ROLE_SPECIFIC',
+        target_skill: 'Technical Background',
+        context_hint: 'Focus on proven experience, core technical stack, and passion for engineering excellence.'
+      },
+      {
+        id: 2,
+        question_text: 'Walk us through a critical production system or architecture you designed. What trade-offs did you make between performance, latency, and maintainability?',
+        question_type: 'PROJECT_BASED',
+        target_skill: 'System Architecture',
+        context_hint: 'Explain system components, protocols, and technical decision making.'
+      },
+      {
+        id: 3,
+        question_text: 'Suppose an API or microservice begins experiencing intermittent 504 gateway timeouts and thread exhaustion under peak traffic. How would you systematically diagnose and resolve this?',
+        question_type: 'PROBLEM_SOLVING',
+        target_skill: 'Diagnostic Methodology',
+        context_hint: 'Structure your systematic investigation from metrics and tracing to root cause mitigation.'
+      },
+      {
+        id: 4,
+        question_text: 'How do you establish rigorous test coverage, clean code standards, and automated CI/CD safeguards in a high-velocity engineering team?',
+        question_type: 'TECHNICAL',
+        target_skill: 'Software Quality & CI/CD',
+        context_hint: 'Highlight automated testing, continuous integration, and staging deployment gates.'
+      },
+      {
+        id: 5,
+        question_text: 'Describe a scenario where engineering constraints clashed with business deadlines. How did you negotiate scope, align with stakeholders, and protect product quality?',
+        question_type: 'SCENARIO_BASED',
+        target_skill: 'Communication & Alignment',
+        context_hint: 'Use the STAR framework (Situation, Task, Action, Result).'
+      }
+    ];
+
+    const sess = sessionStore[token] || {};
+    const isCompleted = sess.is_completed || matchedApp?.status === 'Interview Completed' || matchedApp?.interview?.status === 'Completed';
+
+    return {
+      interview_id: sess.interview_id || matchedApp?.id || 1,
+      token: token,
+      status: isCompleted ? 'Completed' : 'In Progress',
+      job_title: targetJob.title,
+      job_department: targetJob.department,
+      candidate_name: candidateName,
+      duration_minutes: 25,
+      questions: jobQuestions,
+      is_completed: isCompleted
+    } as unknown as T;
   }
 
   // --- ADMIN ENDPOINTS ---
@@ -865,6 +1194,10 @@ export const api = {
       request<any>(`/owner/applications/${appId}/note`, { method: 'POST', body: JSON.stringify({ note_text: text, is_private }) }),
     retryApplicationEmail: (appId: number) =>
       request<any>(`/owner/applications/${appId}/retry-email`, { method: 'POST' }),
+    getJobInterviewQuestions: (jobId: number) =>
+      request<any>(`/owner/jobs/${jobId}/interview-questions`),
+    setJobInterviewQuestions: (jobId: number, questions: any[]) =>
+      request<any>(`/owner/jobs/${jobId}/interview-questions`, { method: 'POST', body: JSON.stringify({ questions }) }),
   },
 
   // Proctored Interview Session
