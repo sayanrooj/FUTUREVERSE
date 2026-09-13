@@ -13,10 +13,7 @@ export const AdminLoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fillDemoAdmin = () => {
-    setEmail('admin@futureverse.ai');
-    setPassword('Admin@2026');
-  };
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,18 +53,6 @@ export const AdminLoginPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Demo Admin Auto-fill */}
-        <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
-          <span className="text-slate-400">Master Admin:</span>
-          <button
-            type="button"
-            onClick={fillDemoAdmin}
-            className="text-emerald-400 hover:text-emerald-300 font-mono font-semibold"
-          >
-            Auto-fill Super Admin ⚡
-          </button>
-        </div>
-
         {error && (
           <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
@@ -85,7 +70,7 @@ export const AdminLoginPage: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@futureverse.ai"
+                placeholder="admin@organization.com"
                 className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-900 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
             </div>

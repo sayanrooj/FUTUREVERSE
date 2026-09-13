@@ -13,11 +13,7 @@ export const CandidateLoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Quick fill demo candidate
-  const fillDemoCandidate = () => {
-    setEmail('aarav.sharma@example.com');
-    setPassword('Candidate@2026');
-  };
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,17 +53,7 @@ export const CandidateLoginPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Demo Candidate Auto-Fill Button */}
-        <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
-          <span className="text-slate-400">Demo Candidate:</span>
-          <button
-            type="button"
-            onClick={fillDemoCandidate}
-            className="text-brand-400 hover:text-brand-300 font-mono font-semibold"
-          >
-            Auto-fill Aarav Sharma ⚡
-          </button>
-        </div>
+
 
         {error && (
           <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
